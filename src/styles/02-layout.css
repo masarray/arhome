@@ -59,7 +59,7 @@
 .workspace-header h1 {
   margin: 0;
   color: var(--ink);
-  font-family: "Outfit", var(--font-sans);
+  font-family: var(--font-display);
   font-size: 28px;
   line-height: 1;
   font-weight: 700;
