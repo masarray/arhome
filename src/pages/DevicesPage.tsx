@@ -8,6 +8,7 @@ import { rooms } from "@/domain/smartHomeData";
 export function DevicesPage() {
   const home = useSmartHome();
   const [open, setOpen] = useState(false);
+  const totalSynced = home.devices.length + home.configuredDevices.length;
 
   return (
     <section className="page-shell">
@@ -16,7 +17,7 @@ export function DevicesPage() {
           <span className="page-eyebrow">Device library</span>
           <h1>Smart devices</h1>
           <p>
-            {home.configuredDevices.length} perangkat tersinkron · {CATALOG.length} produk di
+            {totalSynced} perangkat tersinkron · {CATALOG.length} produk di
             katalog
           </p>
         </div>
@@ -32,7 +33,7 @@ export function DevicesPage() {
           <h3>Perangkat aktif</h3>
           {home.configuredDevices.length === 0 ? (
             <p className="devices-empty">
-              Belum ada perangkat di apartemen. Tekan <b>Pair perangkat baru</b> untuk memulai.
+              Perangkat sistem sudah aktif di Home. Perangkat hasil pairing akan muncul di sini setelah ditambahkan.
             </p>
           ) : (
             <div className="device-cards">
