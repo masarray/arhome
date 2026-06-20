@@ -8,6 +8,12 @@ import { LightingPanel } from "@/components/panels/LightingPanel";
 import { AddDeviceWizard } from "@/components/wizard/AddDeviceWizard";
 import { useSmartHome } from "@/hooks/useSmartHome";
 import { useEnergyStream } from "@/hooks/useEnergyStream";
+import type { ControlLayerKey } from "@/domain/smartHomeTypes";
+
+function layerToCanvasLayer(layer: ControlLayerKey): ControlLayer {
+  if (layer === "energy" || layer === "climate" || layer === "security" || layer === "camera") return layer;
+  return "lighting";
+}
 
 export function SmartHomePage() {
   const smartHome = useSmartHome();
@@ -118,6 +124,7 @@ export function SmartHomePage() {
         onClose={() => setWizardOpen(false)}
         onComplete={(device) => {
           smartHome.saveConfiguredDevice(device);
+          setSelectedLayer(layerToCanvasLayer(device.layer));
           setLayoutEditMode(true);
           setWizardOpen(false);
         }}
