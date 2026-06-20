@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Area,
@@ -20,7 +20,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEnergyStream } from "@/hooks/useEnergyStream";
-import { useSmartHome } from "@/hooks/useSmartHome";
 import { useInvoices } from "@/hooks/useInvoices";
 import { energySim } from "@/services/energySimulator";
 import { billing } from "@/services/billingEngine";
@@ -46,55 +45,17 @@ const DEVICE_LABEL: Record<string, string> = {
   kitchen: "Dapur",
   "wm-dryer": "Mesin Cuci",
   "router-iot": "Router & IoT",
+  humidifier: "Humidifier",
+  vacuum: "Robot vacuum",
+  outlets: "Smart outlets",
+  camera: "Camera",
+  doorbell: "Door bell",
+  "door-lock": "Door lock",
+  "energy-meter": "Energy meter",
 };
 
 export function EnergyPage() {
-  const home = useSmartHome();
   const invoices = useInvoices();
-
-
-  // Wire smart-home state into the simulator factory with realistic
-  // time-of-day duty cycles so live load stays plausible for a 2200 VA flat.
-  useEffect(() => {
-    const factory = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      const isPeak = hour >= 18 && hour <= 22;
-      const isNight = hour >= 22 || hour <= 5;
-      const isMidday = hour >= 12 && hour <= 14;
-      const acFactor = isNight || isPeak ? 0.85 : isMidday ? 0.55 : 0.18;
-      const lighting = home.avgBrightness * 220 + (isNight || hour < 7 || hour > 18 ? 35 : 6);
-      const tv = isPeak ? 130 : 12;
-      const cook =
-        hour === 7 ? 800 : hour === 12 ? 600 : hour === 19 ? 950 : 6;
-      const wmDryer = hour === 8 && now.getDay() % 3 === 0 ? 1200 : 0;
-      const acBedroom = 950 * acFactor;
-      const acLiving = home.climateDevice?.power
-        ? 1100 * acFactor + Math.abs(24 - Number(home.climateDevice.value ?? 24)) * 40
-        : 35;
-      const fridge = 95 + (Math.sin(now.getMinutes() / 6) + 1) * 18;
-      const router = 22;
-      const humidifier = home.humidifierDevice?.power ? 38 : 1.5;
-      const vacuum = home.vacuumDevice?.power ? 28 : 2.2;
-      const outlets = Object.values(home.outletStates).filter((o) => o.on).length;
-      return [
-        { id: "ac-bedroom", label: "AC Bedroom", room: "Bedroom", category: "climate", watts: acBedroom, on: true },
-        { id: "ac-living", label: "AC Living", room: "Living", category: "climate", watts: acLiving, on: true },
-        { id: "fridge", label: "Kulkas", room: "Kitchen", category: "appliance", watts: fridge, on: true },
-        { id: "lighting", label: "Lampu apartemen", room: "All", category: "lighting", watts: lighting, on: true },
-        { id: "tv-living", label: "TV & Hiburan", room: "Living", category: "appliance", watts: tv, on: true },
-        { id: "kitchen", label: "Dapur", room: "Kitchen", category: "appliance", watts: cook, on: cook > 10 },
-        { id: "wm-dryer", label: "Mesin Cuci & Dryer", room: "Utility", category: "appliance", watts: wmDryer, on: wmDryer > 0 },
-        { id: "router-iot", label: "Router & IoT", room: "Hall", category: "iot", watts: router, on: true },
-        { id: "humidifier", label: "Humidifier", room: "Living", category: "appliance", watts: humidifier, on: Boolean(home.humidifierDevice?.power) },
-        { id: "vacuum", label: "Robot vacuum", room: "Bedroom", category: "appliance", watts: vacuum, on: Boolean(home.vacuumDevice?.power) },
-        { id: "outlets", label: "Smart outlets", room: "All", category: "appliance", watts: outlets * 90 + 4, on: outlets > 0 },
-      ];
-    };
-    energySim.setDeviceFactory(factory);
-    energySim.start();
-  }, [home]);
-
   const snap = useEnergyStream();
 
   // Last 24 hours
@@ -178,8 +139,17 @@ export function EnergyPage() {
 
   const liveKW = snap.liveWatts / 1000;
   const contractKW = TARIFF.contractVA / 1000;
-  const loadPct = Math.min(100, (liveKW / contractKW) * 100);
-  const overLoad = loadPct > 88;
+  const rawLoadPct = contractKW > 0 ? (liveKW / contractKW) * 100 : 0;
+  const meterPct = Math.min(100, rawLoadPct);
+  const loadState = rawLoadPct >= 100 ? "over" : rawLoadPct >= 90 ? "warning" : rawLoadPct >= 70 ? "high" : "normal";
+  const loadStateLabel =
+    loadState === "over"
+      ? "Melebihi kontrak"
+      : loadState === "warning"
+        ? "Mendekati batas"
+        : loadState === "high"
+          ? "Beban tinggi"
+          : "Aman";
   const unpaid = invoices.filter((i) => i.status === "unpaid").length;
 
   return (
@@ -189,7 +159,7 @@ export function EnergyPage() {
           <span className="page-eyebrow">Energy Management</span>
           <h1>Realtime energy & cost</h1>
           <p>
-            Tarif {TARIFF.goldenName} · Daya {TARIFF.contractVA} VA · Rp{" "}
+            Tarif dapat diatur · Kontrak {TARIFF.contractVA} VA · Rp{" "}
             {TARIFF.ratePerKwh.toLocaleString("id-ID")} / kWh
           </p>
         </div>
@@ -206,9 +176,9 @@ export function EnergyPage() {
           <button
             type="button"
             className="primary-btn"
-            onClick={() => billing.generateNextDemo()}
+            onClick={() => billing.generatePreviousMonthDemo()}
           >
-            <ReceiptText size={14} /> Generate invoice bulan lalu
+            <ReceiptText size={14} /> Buat tagihan bulan lalu
           </button>
         </div>
       </header>
@@ -229,15 +199,15 @@ export function EnergyPage() {
               </h2>
               <div className="hero-live__meter">
                 <div
-                  className={`hero-live__bar ${overLoad ? "is-warn" : ""}`}
-                  style={{ width: `${loadPct}%` }}
+                  className={`hero-live__bar ${loadState === "over" ? "is-over" : loadState !== "normal" ? "is-warn" : ""}`}
+                  style={{ width: `${meterPct}%` }}
                 />
               </div>
               <small>
-                {loadPct.toFixed(0)}% dari kontrak {contractKW.toFixed(1)} kW
-                {overLoad ? (
-                  <span className="warn-pill">
-                    <AlertTriangle size={12} /> Mendekati batas
+                {rawLoadPct.toFixed(0)}% dari kontrak {contractKW.toFixed(1)} kW
+                {loadState !== "normal" ? (
+                  <span className={`warn-pill ${loadState === "over" ? "is-over" : ""}`}>
+                    <AlertTriangle size={12} /> {loadStateLabel}
                   </span>
                 ) : null}
               </small>
