@@ -16,7 +16,9 @@ import type {
   RoomLightingState,
   SmartDevice,
 } from "@/domain/smartHomeTypes";
+import { energySim } from "@/services/energySimulator";
 import { loadJSON, saveJSON } from "@/services/persistence";
+import { buildSmartApartmentDeviceLoads } from "@/services/smartApartmentSimulation";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -64,8 +66,28 @@ function defaultState(): StoreState {
   };
 }
 
-let state: StoreState = loadJSON<StoreState>(KEY, defaultState());
+function normalizeState(raw: Partial<StoreState>): StoreState {
+  const fallback = defaultState();
+  return {
+    ...fallback,
+    ...raw,
+    devices: raw.devices ?? fallback.devices,
+    configuredDevices: raw.configuredDevices ?? fallback.configuredDevices,
+    roomLighting: { ...fallback.roomLighting, ...(raw.roomLighting ?? {}) },
+    outletStates: { ...fallback.outletStates, ...(raw.outletStates ?? {}) },
+    roomPositions: { ...fallback.roomPositions, ...(raw.roomPositions ?? {}) },
+    outletPositions: { ...fallback.outletPositions, ...(raw.outletPositions ?? {}) },
+    lockPosition: raw.lockPosition ?? fallback.lockPosition,
+    climatePosition: raw.climatePosition ?? fallback.climatePosition,
+    activeRoomIndex: clamp(raw.activeRoomIndex ?? fallback.activeRoomIndex, 0, rooms.length - 1),
+  };
+}
+
+let state: StoreState = normalizeState(loadJSON<Partial<StoreState>>(KEY, defaultState()));
 const listeners = new Set<() => void>();
+
+energySim.setDeviceFactory(() => buildSmartApartmentDeviceLoads(state));
+if (typeof window !== "undefined") energySim.start();
 
 function persist() {
   saveJSON(KEY, state);
