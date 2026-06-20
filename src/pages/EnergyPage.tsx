@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Area,
@@ -12,15 +12,19 @@ import {
   YAxis,
 } from "recharts";
 import {
+  Activity,
   AlertTriangle,
   Bolt,
   CalendarClock,
+  CheckCircle2,
   Gauge,
   ReceiptText,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { useEnergyStream } from "@/hooks/useEnergyStream";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useSmartHome } from "@/hooks/useSmartHome";
 import { energySim } from "@/services/energySimulator";
 import { billing } from "@/services/billingEngine";
 import { TARIFF, buildInvoiceBreakdown, formatRupiah } from "@/domain/tariff";
@@ -54,9 +58,18 @@ const DEVICE_LABEL: Record<string, string> = {
   "energy-meter": "Energy meter",
 };
 
+function formatEventTime(ts: number) {
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ts));
+}
+
 export function EnergyPage() {
   const invoices = useInvoices();
   const snap = useEnergyStream();
+  const home = useSmartHome();
+  const [resetOpen, setResetOpen] = useState(false);
 
   // Last 24 hours
   const last24 = useMemo(() => {
@@ -84,7 +97,7 @@ export function EnergyPage() {
     const entries = Object.entries(snap.monthlyPerDevice).sort((a, b) => b[1] - a[1]);
     return entries.slice(0, 8).map(([id, kwh], idx) => ({
       id,
-      name: DEVICE_LABEL[id] ?? id,
+      name: DEVICE_LABEL[id] ?? id.replace(/^configured-/, ""),
       value: Number(kwh.toFixed(2)),
       color: DEVICE_COLORS[idx % DEVICE_COLORS.length],
     }));
@@ -110,7 +123,7 @@ export function EnergyPage() {
       .slice(0, 5)
       .map(([id, kwh]) => ({
         id,
-        label: DEVICE_LABEL[id] ?? id,
+        label: DEVICE_LABEL[id] ?? id.replace(/^configured-/, ""),
         kwh,
         cost: Math.round(kwh * TARIFF.ratePerKwh),
       }));
@@ -151,6 +164,7 @@ export function EnergyPage() {
           ? "Beban tinggi"
           : "Aman";
   const unpaid = invoices.filter((i) => i.status === "unpaid").length;
+  const events = home.eventLog.slice(0, 5);
 
   return (
     <section className="page-shell">
@@ -167,9 +181,7 @@ export function EnergyPage() {
           <button
             type="button"
             className="ghost-btn"
-            onClick={() => {
-              if (confirm("Reset semua data energy (akan re-generate 30 hari)?")) energySim.resetAll();
-            }}
+            onClick={() => setResetOpen(true)}
           >
             Reset data
           </button>
@@ -402,7 +414,53 @@ export function EnergyPage() {
             </div>
           </div>
         </article>
+
+        <article className="bento-card bento-card--events">
+          <header className="bento-card__head">
+            <span className="bento-eyebrow">
+              <Activity size={14} /> Automation events
+            </span>
+            <span className="bento-tag">live</span>
+          </header>
+          <ul className="event-list">
+            {events.map((event) => (
+              <li key={event.id} className={`event-list__item is-${event.tone}`}>
+                <span className="event-list__dot"><CheckCircle2 size={13} /></span>
+                <span>
+                  <strong>{event.message}</strong>
+                  <small>{formatEventTime(event.ts)} · {event.detail ?? "Smart apartment"}</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </article>
       </div>
+
+      {resetOpen ? (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Konfirmasi reset data energy">
+          <div className="confirm-card">
+            <button className="confirm-card__close" type="button" aria-label="Tutup" onClick={() => setResetOpen(false)}>
+              <X size={16} />
+            </button>
+            <span className="confirm-card__icon"><AlertTriangle size={18} /></span>
+            <h2>Reset data demo?</h2>
+            <p>Energy history akan dibuat ulang untuk 30 hari terakhir. Layout dan perangkat yang sudah dipair tetap aman.</p>
+            <div className="confirm-card__actions">
+              <button type="button" className="ghost-btn" onClick={() => setResetOpen(false)}>Batal</button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => {
+                  energySim.resetAll();
+                  setResetOpen(false);
+                }}
+              >
+                Reset data
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
