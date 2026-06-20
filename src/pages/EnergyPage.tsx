@@ -65,6 +65,14 @@ function formatEventTime(ts: number) {
   }).format(new Date(ts));
 }
 
+function formatLiveTime(ts: number) {
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(ts));
+}
+
 export function EnergyPage() {
   const invoices = useInvoices();
   const snap = useEnergyStream();
@@ -81,16 +89,33 @@ export function EnergyPage() {
     }));
   }, [snap.hours]);
 
-  // Sparkline of latest 60 seconds of liveWatts using a smoothed window
+  // Actual rolling meter samples from the simulator, not a decorative fake wave.
   const sparkline = useMemo(() => {
-    const arr: { t: number; w: number }[] = [];
-    const last = snap.liveWatts;
-    for (let i = 0; i < 30; i += 1) {
-      const jitter = (Math.sin(snap.now / 1100 + i * 0.7) + 1) / 2;
-      arr.push({ t: i, w: Math.round(last * (0.85 + jitter * 0.18)) });
-    }
-    return arr;
-  }, [snap.liveWatts, snap.now]);
+    const samples = snap.liveSamples.slice(-90);
+    if (samples.length === 0) return [{ t: "now", w: Math.round(snap.liveWatts) }];
+    return samples.map((sample) => ({
+      t: formatLiveTime(sample.ts),
+      w: Math.round(sample.watts),
+    }));
+  }, [snap.liveSamples, snap.liveWatts]);
+
+  const livePowerFlow = useMemo(() => {
+    const total = Math.max(1, snap.liveWatts);
+    return snap.devices
+      .filter((device) => device.watts > 3)
+      .sort((a, b) => b.watts - a.watts)
+      .slice(0, 5)
+      .map((device) => ({
+        id: device.id,
+        label: DEVICE_LABEL[device.id] ?? device.label.replace(/^configured-/, ""),
+        watts: Math.round(device.watts),
+        kw: device.watts / 1000,
+        pct: Math.max(4, Math.min(100, (device.watts / total) * 100)),
+      }));
+  }, [snap.devices, snap.liveWatts]);
+
+  const latestLiveSample = snap.liveSamples[snap.liveSamples.length - 1];
+  const latestSampleAge = latestLiveSample ? Math.max(0, Math.round((snap.now - latestLiveSample.ts) / 1000)) : 0;
 
   // Device share donut (this month)
   const deviceShare = useMemo(() => {
@@ -171,7 +196,7 @@ export function EnergyPage() {
       <header className="page-header">
         <div>
           <span className="page-eyebrow">Energy Management</span>
-          <h1>Realtime energy & cost</h1>
+          <h1>Realtime power flow & cost</h1>
           <p>
             Tarif dapat diatur · Kontrak {TARIFF.contractVA} VA · Rp{" "}
             {TARIFF.ratePerKwh.toLocaleString("id-ID")} / kWh
@@ -204,7 +229,7 @@ export function EnergyPage() {
         >
           <div className="hero-live">
             <div>
-              <span className="bento-eyebrow">Live load</span>
+              <span className="bento-eyebrow">Beban saat ini</span>
               <h2 className="hero-live__value">
                 {liveKW.toFixed(2)}
                 <em>kW</em>
@@ -221,11 +246,17 @@ export function EnergyPage() {
                   <span className={`warn-pill ${loadState === "over" ? "is-over" : ""}`}>
                     <AlertTriangle size={12} /> {loadStateLabel}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="realtime-pill">fluktuatif live</span>
+                )}
               </small>
             </div>
             <div className="hero-live__spark">
-              <ResponsiveContainer width="100%" height={92}>
+              <div className="hero-live__spark-head">
+                <span>Power trace</span>
+                <em>{latestSampleAge <= 1 ? "live" : `${latestSampleAge}s ago`}</em>
+              </div>
+              <ResponsiveContainer width="100%" height={76}>
                 <AreaChart data={sparkline}>
                   <defs>
                     <linearGradient id="lg-live" x1="0" y1="0" x2="0" y2="1">
@@ -233,6 +264,16 @@ export function EnergyPage() {
                       <stop offset="100%" stopColor="#7c6bff" stopOpacity={0} />
                     </linearGradient>
                   </defs>
+                  <Tooltip
+                    contentStyle={{
+                      background: "rgba(31,27,45,0.92)",
+                      border: 0,
+                      borderRadius: 12,
+                      color: "#fff",
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => [`${(v / 1000).toFixed(2)} kW`, "Beban"]}
+                  />
                   <Area
                     type="monotone"
                     dataKey="w"
@@ -243,6 +284,19 @@ export function EnergyPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              <ul className="power-flow-list" aria-label="Top live device power flow">
+                {livePowerFlow.map((device) => (
+                  <li key={device.id}>
+                    <div className="power-flow-list__head">
+                      <span>{device.label}</span>
+                      <em>{device.kw.toFixed(2)} kW</em>
+                    </div>
+                    <div className="power-flow-list__track">
+                      <b style={{ width: `${device.pct}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </motion.article>
@@ -274,7 +328,7 @@ export function EnergyPage() {
         <article className="bento-card bento-card--chart">
           <header className="bento-card__head">
             <span className="bento-eyebrow">24 jam terakhir</span>
-            <span className="bento-tag">kWh / jam</span>
+            <span className="bento-tag">kWh aktual / jam</span>
           </header>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={last24} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
