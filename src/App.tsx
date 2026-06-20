@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -11,7 +11,7 @@ function PageFallback() {
   return <div className="page-fallback">Loading smart apartment…</div>;
 }
 
-function withSuspense(node: React.ReactNode) {
+function withSuspense(node: ReactNode) {
   return <Suspense fallback={<PageFallback />}>{node}</Suspense>;
 }
 
