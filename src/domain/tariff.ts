@@ -1,11 +1,9 @@
-// PLN — Tarif Tenaga Listrik R1/TR Non-Subsidi 2200 VA (golongan rumah tangga)
-// Per Q1 2026 reference: Rp 1.444,70 / kWh
-// Pajak Penerangan Jalan (PPJ) Pemkot Bogor: 3%
-// Biaya admin bank: Rp 2.500
-// Minimum charge (rekening minimum) = 40 jam nyala × Daya kVA × tarif
-// Materai elektronik Rp 10.000 untuk tagihan > Rp 5.000.000
+// Default apartment energy billing profile for demo use.
+// Values are intentionally configurable and not tied to a public utility brand.
+// Minimum charge = 40 billing hours × contracted kVA × energy rate.
+// Stamp duty is applied only for very high simulated invoices.
 export const TARIFF = {
-  goldenName: "R1/TR — Non-Subsidi",
+  goldenName: "Apartment Standard Plan",
   contractVA: 2200,
   contractKVA: 2.2,
   ratePerKwh: 1444.7,
@@ -13,7 +11,7 @@ export const TARIFF = {
   bankAdmin: 2500,
   materaiThreshold: 5_000_000,
   materai: 10_000,
-  minHourly: 40, // jam nyala minimum
+  minHourly: 40,
 } as const;
 
 export function calcMinimumKwh() {
@@ -57,14 +55,14 @@ export function buildInvoiceBreakdown(kwh: number): InvoiceBreakdown {
       }`,
     },
     {
-      label: "Pajak Penerangan Jalan (PPJ 3%)",
+      label: "Layanan Gedung & Distribusi (3%)",
       amount: ppj,
-      detail: "Pemkot setempat",
+      detail: "Pengelola apartemen",
     },
     {
-      label: "Biaya Admin Bank",
+      label: "Biaya Administrasi",
       amount: TARIFF.bankAdmin,
-      detail: "VA Bank Mitra",
+      detail: "Sistem billing pengelola",
     },
   ];
   if (materai > 0) lines.push({ label: "Materai Elektronik", amount: materai });
