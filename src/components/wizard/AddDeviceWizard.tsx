@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Bluetooth, Check, ChevronRight, MapPin, Radio, Search, Wifi, X, Zap } from "lucide-react";
+import apartment from "@/assets/apartment-3d.jpg";
 import {
   CATALOG,
   CATEGORY_LABEL,
@@ -28,7 +29,17 @@ const PROTOCOL_ICON: Record<Protocol, typeof Wifi> = {
   zigbee: Radio,
 };
 
+type Position = { x: string; y: string };
 type DiscoveredDevice = ReturnType<typeof pseudoDiscover>[number];
+
+function roomDefaultPosition(roomKey: RoomKey): Position {
+  const room = rooms.find((r) => r.key === roomKey);
+  return { x: room?.x ?? "52%", y: room?.y ?? "55%" };
+}
+
+function formatPosition(value: number) {
+  return `${Math.min(94, Math.max(6, value)).toFixed(1)}%`;
+}
 
 export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardProps) {
   const [step, setStep] = useState<WizardStep>("category");
@@ -41,6 +52,7 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
   const [pairPhase, setPairPhase] = useState(0);
   const [room, setRoom] = useState<RoomKey>("living");
   const [name, setName] = useState("");
+  const [position, setPosition] = useState<Position>(() => roomDefaultPosition("living"));
 
   // Reset when reopened
   useEffect(() => {
@@ -52,6 +64,8 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
     setSelectedFound(null);
     setScanProgress(0);
     setPairPhase(0);
+    setRoom("living");
+    setPosition(roomDefaultPosition("living"));
     setName("");
   }, [open]);
 
@@ -113,14 +127,25 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
   const startDiscovery = () => setStep("discovery");
   const goPair = () => setStep("place");
 
+  const chooseRoom = (nextRoom: RoomKey) => {
+    setRoom(nextRoom);
+    setPosition(roomDefaultPosition(nextRoom));
+  };
+
+  const handlePlacementClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    setPosition({ x: formatPosition(x), y: formatPosition(y) });
+  };
+
   const finish = () => {
     if (!product || !selectedFound) return;
-    const defaultPosition = { x: "52%", y: "55%" };
     const device = instantiateDevice(
       product,
       name || `${product.brand} ${product.model}`,
       room,
-      defaultPosition,
+      position,
     );
     onComplete(device);
   };
@@ -152,7 +177,7 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
               }`}
             >
               <span>{i + 1}</span>
-              <em>{["Jenis", "Protokol", "Scan", "Pair"][i]}</em>
+              <em>{["Jenis", "Protokol", "Scan", "Place"][i]}</em>
             </li>
           ))}
         </ol>
@@ -321,7 +346,7 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
               </label>
               <label className="wiz-field">
                 <span>Ruangan</span>
-                <select value={room} onChange={(e) => setRoom(e.target.value as RoomKey)}>
+                <select value={room} onChange={(e) => chooseRoom(e.target.value as RoomKey)}>
                   {rooms.map((r) => (
                     <option key={r.key} value={r.key}>
                       {r.label}
@@ -330,11 +355,31 @@ export function AddDeviceWizard({ open, onClose, onComplete }: AddDeviceWizardPr
                 </select>
               </label>
 
-              <div className="wiz-note">
-                <MapPin size={14} />
-                <span>
-                  Setelah disimpan, aktifkan <b>Edit layout</b> untuk menyeret pin perangkat ke
-                  posisi di denah apartemen.
+              <div className="wiz-placement">
+                <div>
+                  <span className="wiz-placement__label">Posisi di denah</span>
+                  <small>Klik mini map untuk menentukan lokasi awal pin.</small>
+                </div>
+                <button
+                  type="button"
+                  className="wiz-placement-map"
+                  onClick={handlePlacementClick}
+                  aria-label="Pilih posisi perangkat di denah apartemen"
+                >
+                  <img src={apartment} alt="Mini apartment placement map" />
+                  <span
+                    className="wiz-placement-map__pin"
+                    style={{
+                      left: position.x,
+                      top: position.y,
+                      background: product.accent,
+                    }}
+                  >
+                    {product.brand[0]}
+                  </span>
+                </button>
+                <span className="wiz-placement__hint">
+                  Pin akan langsung muncul di layer <b>{CATEGORY_LABEL[product.category]}</b> setelah disimpan.
                 </span>
               </div>
 
