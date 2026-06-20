@@ -25,6 +25,7 @@ type State = {
 const KEY = "mas.energy.v2";
 const MAX_HOURS = 24 * 32;
 const MAX_LIVE_SAMPLES = 180;
+const PERSIST_INTERVAL_MS = 5000;
 
 function emptyState(): State {
   return {
@@ -86,6 +87,37 @@ function dutyGate(ts: number, seed: number, cycleSeconds: number, duty: number) 
   const shifted = ts + Math.round(seed * 9973);
   const phase = ((shifted % cycle) + cycle) % cycle;
   return phase / cycle < duty;
+}
+
+function wrappedHourDistance(hour: number, target: number) {
+  const raw = Math.abs(hour - target);
+  return Math.min(raw, 24 - raw);
+}
+
+function bell(hour: number, target: number, width: number) {
+  const distance = wrappedHourDistance(hour, target);
+  return Math.exp(-(distance * distance) / (2 * width * width));
+}
+
+function historyUsageFactor(ts: number, id: string, baseWeight: number) {
+  const d = new Date(ts);
+  const hourFloat = d.getHours() + d.getMinutes() / 60;
+  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+  const night = Math.max(bell(hourFloat, 0.5, 3.2), bell(hourFloat, 23, 2.2));
+  const evening = bell(hourFloat, 20.2, 2.4);
+  const midday = bell(hourFloat, 13, 1.2);
+  const breakfast = bell(hourFloat, 7.1, 0.42);
+  const lunch = bell(hourFloat, 12.3, 0.48);
+  const dinner = bell(hourFloat, 19.1, 0.62);
+  const daylight = bell(hourFloat, 13, 4.6);
+
+  let factor = baseWeight;
+  if (id.startsWith("ac")) factor *= 0.18 + night * 0.58 + evening * 0.38 + midday * 0.28;
+  if (id === "lighting") factor *= Math.max(0.1, 0.35 + evening * 0.85 + night * 0.55 - daylight * 0.24);
+  if (id === "tv-living") factor *= 0.12 + evening * 0.95 + (isWeekend ? bell(hourFloat, 14, 1.8) * 0.46 : 0);
+  if (id === "kitchen") factor *= 0.04 + Math.max(breakfast * 0.82, lunch * 0.68, dinner);
+  if (id === "wm-dryer") factor *= d.getDay() % 3 === 0 ? bell(hourFloat, 8.6, 0.72) : 0;
+  return Math.max(0, factor);
 }
 
 function standbyWatts(device: DeviceLoad, ts: number) {
@@ -154,15 +186,22 @@ class EnergySimulator {
   private listeners = new Set<(snapshot: Snapshot) => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private deviceFactory: (() => DeviceLoad[]) | null = null;
+  private lastPersistAt = 0;
 
   constructor() {
     this.state = normalizeState(loadJSON<State>(KEY, emptyState()));
     if (this.state.hours.length === 0) this.backfill();
+    this.lastPersistAt = Date.now();
   }
 
   setDeviceFactory(fn: () => DeviceLoad[]) {
     this.deviceFactory = fn;
-    this.broadcast(this.getMeasuredDevices(Date.now()));
+    const now = Date.now();
+    const latest = this.state.liveSamples[this.state.liveSamples.length - 1];
+    if (!latest || now - latest.ts > 10_000 || this.state.liveSamples.length < 30) {
+      this.primeLiveSamples(now);
+    }
+    this.broadcast(this.getMeasuredDevices(now));
   }
 
   start() {
@@ -199,22 +238,11 @@ class EnergySimulator {
     ];
     for (let i = 0; i < 24 * 30; i += 1) {
       const ts = startHour + i * 3600_000;
-      const d = new Date(ts);
-      const hour = d.getHours();
-      const isNight = hour >= 22 || hour <= 5;
-      const isPeak = hour >= 18 && hour <= 22;
-      const isMidday = hour >= 12 && hour <= 14;
-      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const perDevice: Record<string, number> = {};
       let kwh = 0;
       for (const dev of baseDevices) {
-        let factor = dev.weight;
         const seed = hashId(dev.id);
-        if (dev.id.startsWith("ac")) factor *= isNight || isPeak ? 0.95 : isMidday ? 0.8 : 0.25;
-        if (dev.id === "lighting") factor *= isNight || hour < 7 || hour > 18 ? 1.2 : 0.15;
-        if (dev.id === "tv-living") factor *= isPeak || (isWeekend && hour >= 10 && hour <= 15) ? 1.05 : 0.2;
-        if (dev.id === "kitchen") factor *= hour === 7 || hour === 12 || hour === 19 ? 1.0 : isWeekend && hour === 15 ? 0.36 : 0.05;
-        if (dev.id === "wm-dryer") factor *= hour === 8 && d.getDay() % 3 === 0 ? 1.0 : 0;
+        const factor = historyUsageFactor(ts, dev.id, dev.weight);
         const jitter = seededHourJitter(ts, seed);
         const energy = (dev.watts * factor * jitter) / 1000; // kWh in 1 hour
         perDevice[dev.id] = energy;
@@ -247,6 +275,17 @@ class EnergySimulator {
     return { ts, watts: Math.round(watts), perDevice };
   }
 
+  private primeLiveSamples(now: number) {
+    if (!this.deviceFactory) return;
+    const samples: LiveSample[] = [];
+    for (let i = MAX_LIVE_SAMPLES - 1; i >= 0; i -= 1) {
+      const ts = now - i * 1000;
+      samples.push(this.makeLiveSample(ts, this.getMeasuredDevices(ts)));
+    }
+    this.state.liveSamples = samples;
+    this.persist();
+  }
+
   private pushLiveSample(ts: number, devices: DeviceLoad[]) {
     const sample = this.makeLiveSample(ts, devices);
     const last = this.state.liveSamples[this.state.liveSamples.length - 1];
@@ -269,9 +308,11 @@ class EnergySimulator {
     const devices = this.getMeasuredDevices(now);
     const bucketTs = hourBucketStart(now);
     let bucket = this.state.hours[this.state.hours.length - 1];
+    let bucketCreated = false;
     if (!bucket || bucket.ts !== bucketTs) {
       bucket = { ts: bucketTs, kwh: 0, perDevice: {} };
       this.state.hours.push(bucket);
+      bucketCreated = true;
       if (this.state.hours.length > MAX_HOURS) this.state.hours.shift();
     }
     const mk = monthKey(now);
@@ -285,7 +326,10 @@ class EnergySimulator {
       this.state.monthlyKwh[mk] = (this.state.monthlyKwh[mk] ?? 0) + energy;
     }
     this.pushLiveSample(now, devices);
-    if (now % 5 < 2) this.persist();
+    if (bucketCreated || now - this.lastPersistAt >= PERSIST_INTERVAL_MS) {
+      this.persist();
+      this.lastPersistAt = now;
+    }
     this.broadcast(devices);
   }
 
@@ -329,9 +373,11 @@ class EnergySimulator {
   resetAll() {
     this.state = emptyState();
     this.backfill();
+    this.primeLiveSamples(Date.now());
     const devices = this.getMeasuredDevices(Date.now());
     this.pushLiveSample(Date.now(), devices);
     this.persist();
+    this.lastPersistAt = Date.now();
     this.broadcast(devices);
   }
 
