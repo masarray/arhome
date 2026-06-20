@@ -142,6 +142,13 @@ class BillingEngine {
     this.broadcast();
   }
 
+  resetDemoInvoices() {
+    this.invoices = [];
+    this.persist();
+    this.bootstrap();
+    this.broadcast();
+  }
+
   private persist() {
     saveJSON(KEY, this.invoices);
   }
