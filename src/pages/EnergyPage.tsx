@@ -22,10 +22,11 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { EnergyAdvisorCard } from "@/components/energy/EnergyAdvisorCard";
 import { useEnergyStream } from "@/hooks/useEnergyStream";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useSmartHome } from "@/hooks/useSmartHome";
-import { energySim } from "@/services/energySimulator";
+import { resetCompleteDemoSuite } from "@/services/demoControl";
 import { billing } from "@/services/billingEngine";
 import { TARIFF, buildInvoiceBreakdown, formatRupiah } from "@/domain/tariff";
 
@@ -469,6 +470,8 @@ export function EnergyPage() {
           </div>
         </article>
 
+        <EnergyAdvisorCard />
+
         <article className="bento-card bento-card--events">
           <header className="bento-card__head">
             <span className="bento-eyebrow">
@@ -491,25 +494,29 @@ export function EnergyPage() {
       </div>
 
       {resetOpen ? (
-        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Konfirmasi reset data energy">
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Konfirmasi reset data demo">
           <div className="confirm-card">
             <button className="confirm-card__close" type="button" aria-label="Tutup" onClick={() => setResetOpen(false)}>
               <X size={16} />
             </button>
             <span className="confirm-card__icon"><AlertTriangle size={18} /></span>
-            <h2>Reset data demo?</h2>
-            <p>Energy history akan dibuat ulang untuk 30 hari terakhir. Layout dan perangkat yang sudah dipair tetap aman.</p>
+            <h2>Reset seluruh demo?</h2>
+            <p>
+              Home state, perangkat pairing, histori energy, dan invoice akan dibuat ulang agar simulasi kembali sinkron.
+              <br />
+              <b>Halaman akan refresh otomatis setelah reset.</b>
+            </p>
             <div className="confirm-card__actions">
               <button type="button" className="ghost-btn" onClick={() => setResetOpen(false)}>Batal</button>
               <button
                 type="button"
                 className="primary-btn"
                 onClick={() => {
-                  energySim.resetAll();
+                  resetCompleteDemoSuite();
                   setResetOpen(false);
                 }}
               >
-                Reset data
+                Reset demo
               </button>
             </div>
           </div>
