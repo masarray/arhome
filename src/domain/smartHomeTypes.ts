@@ -80,4 +80,14 @@ export type ConfiguredSmartDevice = {
   capabilities: string[];
 };
 
+export type AutomationEventTone = "info" | "success" | "warning" | "danger";
+
+export type AutomationEvent = {
+  id: string;
+  ts: number;
+  message: string;
+  detail?: string;
+  tone: AutomationEventTone;
+};
+
 export type ControlLayerKey = "lighting" | "energy" | "climate" | "cleaning" | "security" | "camera";
