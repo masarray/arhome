@@ -1,0 +1,182 @@
+/* OWNER: P3 live advisor, reset polish, and compact energy management refinements */
+.bento-card--advisor {
+  grid-column: span 6;
+  min-height: 232px;
+}
+
+.advisor-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: rgba(112, 98, 255, 0.1);
+  color: #6255de;
+}
+
+.advisor-status.is-success {
+  background: rgba(42, 176, 116, 0.12);
+  color: #188052;
+}
+
+.advisor-status.is-warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #a96800;
+}
+
+.advisor-status.is-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #c73535;
+}
+
+.advisor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.advisor-metric {
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.advisor-metric span,
+.advisor-topload span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.advisor-metric strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+
+.advisor-metric em,
+.advisor-topload em,
+.advisor-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.advisor-topload {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(124, 107, 255, 0.12), rgba(58, 166, 255, 0.08));
+}
+
+.advisor-topload > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent);
+}
+
+.advisor-topload strong {
+  color: var(--ink);
+  font-size: 13px;
+  justify-self: start;
+}
+
+.advisor-topload em {
+  justify-self: end;
+  margin-top: 0;
+}
+
+.advisor-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 650;
+  color: #3a3151;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.advisor-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.advisor-note.is-success svg,
+.advisor-note.is-normal svg {
+  color: #24a66b;
+}
+
+.advisor-note.is-warning svg {
+  color: #d88900;
+}
+
+.advisor-note.is-danger svg {
+  color: #d63c3c;
+}
+
+.advisor-demand-bar {
+  height: 7px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(54, 45, 78, 0.08);
+}
+
+.advisor-demand-bar b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7c6bff, #3aa6ff, #f59e0b);
+  transition: width 0.35s ease;
+}
+
+.advisor-caption {
+  margin-top: 9px;
+}
+
+.confirm-card p b {
+  color: var(--ink);
+}
+
+@media (max-width: 1180px) {
+  .bento-card--advisor {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .advisor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .advisor-topload {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .advisor-topload em {
+    justify-self: start;
+  }
+}
