@@ -1,0 +1,6 @@
+/* OWNER: small router-related cosmetic overrides */
+.sidebar-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 14px;
+}

@@ -1,0 +1,106 @@
+/*
+ * OWNER: left sidebar + nav links.
+ */
+.sidebar {
+  height: 100%;
+  min-height: 0;
+  padding: 14px 10px;
+  border-radius: 24px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #7f62f2, #4e35b1);
+  box-shadow: 0 18px 34px rgba(92, 67, 184, 0.28);
+}
+
+.sidebar-nav {
+  align-self: start;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-item {
+  width: 58px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.sidebar-item__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.62);
+  color: inherit;
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.sidebar-item:hover .sidebar-item__icon {
+  transform: translateY(-1px);
+  background: #fff;
+}
+
+.sidebar-item__label {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-item.is-active .sidebar-item__icon {
+  color: #fff;
+  background: linear-gradient(145deg, #1f1b2d, #2a2440);
+  box-shadow: 0 14px 28px rgba(31, 27, 45, 0.22);
+}
+
+.sidebar-item.is-active {
+  color: #1f1b2d;
+}
+
+.sidebar-user {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.sidebar-more,
+.sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+}
+
+.sidebar-more {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.sidebar-avatar {
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(31, 27, 45, 0.12);
+}

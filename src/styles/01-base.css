@@ -1,0 +1,46 @@
+/*
+ * OWNER: reset and global base.
+ * Allowed: html/body, typography baseline, generic button/input reset.
+ * Forbidden: component layout, right rail/card fixes.
+ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.48), transparent 38%),
+    linear-gradient(145deg, #e4dfef 0%, var(--bg-page) 52%, #d1cce2 100%);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+strong {
+  font-weight: 760;
+}

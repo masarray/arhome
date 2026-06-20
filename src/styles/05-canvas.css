@@ -1,0 +1,270 @@
+/*
+ * OWNER: apartment canvas and device pins.
+ * Allowed: .apartment-card*, .canvas-*, .device-pin, .lamp-pin, live camera, location callout.
+ * Forbidden: right rail cards, bottom status, config sheet.
+ */
+.apartment-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  isolation: isolate;
+  background: #1f1b2d;
+  box-shadow: 0 22px 42px rgba(62, 49, 92, 0.12);
+}
+
+.apartment-card.is-expanded {
+  height: calc(100vh - 48px);
+  max-height: none;
+}
+
+.apartment-card.is-layout-editing {
+  box-shadow:
+    0 22px 42px rgba(62, 49, 92, 0.12),
+    inset 0 0 0 2px rgba(118, 88, 219, 0.22);
+}
+
+.apartment-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.apartment-card__dim,
+.apartment-card__warm-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.apartment-card__dim {
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(50, 42, 74, 0.80), rgba(42, 36, 62, 0.45));
+}
+
+.apartment-card__warm-wash {
+  z-index: 2;
+  mix-blend-mode: screen;
+  transition: opacity 180ms ease;
+}
+
+.canvas-chip-row {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 12;
+  display: flex;
+  gap: 7px;
+  transform: translateX(-50%);
+}
+
+.canvas-chip {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-radius: var(--radius-control);
+  padding: 0 16px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 720;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 24px rgba(24, 20, 33, 0.13);
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.canvas-chip:hover {
+  transform: translateY(-2px);
+}
+
+.canvas-chip.is-active {
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent-2), #4e35b1);
+}
+
+.canvas-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 12;
+  display: flex;
+  gap: 8px;
+}
+
+.location-callout {
+  position: absolute;
+  top: 62px;
+  right: 14px;
+  z-index: 13;
+  min-width: 220px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  box-shadow: 0 18px 32px rgba(24, 20, 33, 0.14);
+  backdrop-filter: blur(16px);
+}
+
+.location-callout__title {
+  font-size: 13px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.location-callout__detail {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.live-camera-card {
+  position: absolute;
+  top: 92px;
+  left: 22%;
+  z-index: 12;
+  width: 132px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 34px rgba(24, 20, 33, 0.17);
+}
+
+.live-camera-card img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+}
+
+.live-camera-card__badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+  background: rgba(31, 27, 45, 0.82);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.live-camera-card__badge::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #ff4b4b;
+}
+
+.live-camera-card__audio {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: #fff;
+  background: rgba(31, 27, 45, 0.78);
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.device-pin,
+.lamp-pin {
+  position: absolute;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 22px rgba(31, 27, 42, 0.13);
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.apartment-card.is-layout-editing .device-pin,
+.apartment-card.is-layout-editing .lamp-pin {
+  cursor: grab;
+}
+
+.apartment-card.is-layout-editing .device-pin:active,
+.apartment-card.is-layout-editing .lamp-pin:active {
+  cursor: grabbing;
+}
+
+.device-pin:hover,
+.lamp-pin:hover {
+  transform: translate(-50%, calc(-100% - 5px)) scale(1.04);
+}
+
+.device-pin--dark,
+.device-pin.is-active,
+.lamp-pin.is-active {
+  color: #fff;
+  background:
+    radial-gradient(circle at 34% 25%, rgba(255, 255, 255, 0.30), transparent 36%),
+    linear-gradient(145deg, var(--accent-2), #4e35b1);
+  box-shadow: var(--shadow-accent);
+}
+
+.device-pin[aria-pressed="false"] {
+  opacity: 0.78;
+}
+
+.device-pin.is-layout-selected,
+.lamp-pin.is-layout-selected {
+  box-shadow:
+    0 16px 30px rgba(92, 67, 184, 0.28),
+    0 0 0 8px rgba(115, 82, 214, 0.14);
+}
+
+.lamp-pin {
+  color: #6f5e20;
+  background: linear-gradient(145deg, #ffdf78, #f6c956);
+}
+
+.lamp-pin__glow {
+  position: absolute;
+  inset: -16px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 207, 91, 0.42), transparent 68%);
+}
+
+.door-lock-pin.is-unlocked {
+  color: var(--warning);
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.98), rgba(255, 248, 232, 0.96)),
+    linear-gradient(145deg, var(--warning-bg), #f8ecd4);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 18px 32px rgba(191, 132, 29, 0.18),
+    0 0 0 1px rgba(194, 129, 29, 0.08);
+}
+
+.door-lock-pin.is-unlocked:hover {
+  transform: translate(-50%, calc(-100% - 5px)) scale(1.06);
+}
+
+.door-lock-pin.is-locked {
+  color: #fff;
+}

@@ -1,0 +1,227 @@
+/*
+ * OWNER: add/edit smart device side sheet only.
+ * Allowed: .config-*.
+ * Forbidden: canvas edit layout, right rail cards.
+ */
+.config-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(31, 27, 42, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.config-sheet {
+  width: min(100%, 520px);
+  height: calc(100vh - 28px);
+  margin: 14px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  border-radius: 30px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 86% 8%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.74) 34%, transparent 60%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 240, 249, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: 0 30px 80px rgba(31, 27, 42, 0.28);
+}
+
+.config-sheet__header,
+.config-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.config-sheet__header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 680;
+  letter-spacing: -0.04em;
+}
+
+.config-close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.76);
+  cursor: pointer;
+}
+
+.config-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 18px 12px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  scrollbar-width: none;
+}
+
+.config-body::-webkit-scrollbar {
+  display: none;
+}
+
+.config-section {
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.config-category-grid,
+.config-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.config-category-grid button,
+.config-chip-grid button,
+.config-device-row {
+  min-height: 42px;
+  border-radius: 16px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-soft);
+  background: rgba(247, 244, 251, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 720;
+  text-align: left;
+}
+
+.config-category-grid button.is-active,
+.config-chip-grid button.is-active,
+.config-device-row.is-active {
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent-2), #4e35b1);
+  box-shadow: var(--shadow-accent);
+}
+
+.config-list {
+  display: grid;
+  gap: 8px;
+}
+
+.config-device-row {
+  width: 100%;
+  height: auto;
+  padding: 10px 12px;
+}
+
+.config-device-row strong,
+.config-device-row small {
+  display: block;
+}
+
+.config-device-row strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.config-device-row small {
+  margin-top: 3px;
+  opacity: 0.74;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.config-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.config-field {
+  display: grid;
+  gap: 6px;
+}
+
+.config-field + .config-field,
+.config-two + .config-two {
+  margin-top: 10px;
+}
+
+.config-field span,
+.config-label-row span,
+.config-range span {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.config-field input,
+.config-field select {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: rgba(246, 243, 250, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(44, 38, 56, 0.07);
+  outline: none;
+}
+
+.config-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.config-label-row small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.config-range {
+  height: 34px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 9px;
+}
+
+.config-range input {
+  accent-color: var(--accent);
+}
+
+.config-save,
+.config-danger {
+  height: 42px;
+  border-radius: var(--radius-control);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.config-save {
+  color: #fff;
+  background: linear-gradient(145deg, #302943, #1e1a2b);
+  box-shadow: 0 14px 28px rgba(31, 26, 43, 0.22);
+}
+
+.config-danger {
+  color: #be3d3d;
+  background: rgba(217, 83, 83, 0.10);
+}

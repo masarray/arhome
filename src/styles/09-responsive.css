@@ -1,0 +1,102 @@
+/*
+ * OWNER: responsive overrides only.
+ */
+@media (max-height: 900px) and (min-width: 1000px) {
+  :root {
+    --right-rail-width: 332px;
+    --header-height: 56px;
+    --bottom-height: 60px;
+    --app-gap: 12px;
+  }
+
+  .app-shell {
+    padding: 8px;
+  }
+
+  .dashboard-frame {
+    height: calc(100vh - 16px);
+    padding: 12px;
+  }
+
+  .panel,
+  .compact-panel {
+    padding: 12px;
+  }
+
+  .panel__header {
+    min-height: 38px;
+  }
+
+  .vacuum-card-visual img {
+    width: 154px;
+  }
+
+  .lamp-stage {
+    width: 132px;
+    height: 108px;
+  }
+
+  .lamp-stage img {
+    height: 104px;
+  }
+}
+
+@media (max-width: 1080px) {
+  html,
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    place-items: start center;
+  }
+
+  .dashboard-frame {
+    height: auto;
+    min-height: calc(100vh - 20px);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .workspace-body {
+    grid-template-columns: 1fr;
+  }
+
+  .right-rail {
+    height: auto;
+    grid-template-rows: none;
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .wiz-sheet {
+    width: calc(100% - 20px);
+    height: calc(100vh - 20px);
+    margin: 10px;
+    border-radius: 24px;
+  }
+
+  .header-actions {
+    display: none;
+  }
+
+  .ecosystem-row {
+    display: none;
+  }
+
+  .hero-live {
+    grid-template-columns: 1fr;
+  }
+}
