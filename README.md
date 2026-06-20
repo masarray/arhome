@@ -16,6 +16,10 @@ npm run typecheck
 npm run build
 ```
 
+## Public npm lockfile
+
+`package-lock.json` is intentionally included so `npm ci` works in GitHub Actions, but all tarball `resolved` URLs have been sanitized to public npm registry URLs (`https://registry.npmjs.org/`). No private OpenAI, Lovable, or internal registry URL is required.
+
 ## GitHub Pages deployment
 
 This repository is ready for GitHub Pages through `.github/workflows/deploy.yml`.
