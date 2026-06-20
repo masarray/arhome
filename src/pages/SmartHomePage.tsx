@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, ChevronDown, Pencil, Plus } from "lucide-react";
 import { ApartmentCanvas, type ControlLayer } from "@/components/canvas/ApartmentCanvas";
 import { BottomStatusBar } from "@/components/panels/BottomStatusBar";
@@ -8,7 +8,6 @@ import { LightingPanel } from "@/components/panels/LightingPanel";
 import { AddDeviceWizard } from "@/components/wizard/AddDeviceWizard";
 import { useSmartHome } from "@/hooks/useSmartHome";
 import { useEnergyStream } from "@/hooks/useEnergyStream";
-import { energySim } from "@/services/energySimulator";
 
 export function SmartHomePage() {
   const smartHome = useSmartHome();
@@ -16,28 +15,7 @@ export function SmartHomePage() {
   const [selectedLayer, setSelectedLayer] = useState<ControlLayer | null>("lighting");
   const [layoutEditMode, setLayoutEditMode] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-
-  // Make sure the energy simulator has a device factory even before the
-  // user opens the Energy page (so the bottom bar live load is real).
-  useEffect(() => {
-    energySim.setDeviceFactory(() => [
-      { id: "ac-living", label: "AC Living", room: "Living", category: "climate",
-        watts: smartHome.climateDevice?.power ? 950 : 28, on: true },
-      { id: "lighting", label: "Lampu", room: "All", category: "lighting",
-        watts: smartHome.avgBrightness * 220 + 12, on: true },
-      { id: "fridge", label: "Kulkas", room: "Kitchen", category: "appliance",
-        watts: 110, on: true },
-      { id: "router", label: "Router & IoT", room: "Hall", category: "iot",
-        watts: 22, on: true },
-      { id: "humidifier", label: "Humidifier", room: "Living", category: "appliance",
-        watts: smartHome.humidifierDevice?.power ? 38 : 1.5, on: true },
-      { id: "vacuum", label: "Robot vacuum", room: "Bedroom", category: "appliance",
-        watts: smartHome.vacuumDevice?.power ? 28 : 2.2, on: true },
-      { id: "outlets", label: "Smart outlets", room: "All", category: "appliance",
-        watts: Object.values(smartHome.outletStates).filter((o) => o.on).length * 90 + 4, on: true },
-    ]);
-    energySim.start();
-  }, [smartHome]);
+  const [canvasExpanded, setCanvasExpanded] = useState(false);
 
   const energy = useEnergyStream();
   const liveKW = energy.liveWatts / 1000;
@@ -81,7 +59,7 @@ export function SmartHomePage() {
           climatePosition={smartHome.climatePosition}
           doorLocked={Boolean(smartHome.doorLockDevice?.power)}
           configuredDevices={smartHome.configuredDevices}
-          isExpanded={false}
+          isExpanded={canvasExpanded}
           layoutEditMode={layoutEditMode}
           lockPosition={smartHome.lockPosition}
           outletPositions={smartHome.outletPositions}
@@ -95,7 +73,7 @@ export function SmartHomePage() {
           onToggleCamera={() => setShowCamera((c) => !c)}
           onToggleConfiguredDevice={smartHome.toggleConfiguredDevice}
           onToggleDoorLock={smartHome.toggleDoorLock}
-          onToggleExpand={() => {}}
+          onToggleExpand={() => setCanvasExpanded((current) => !current)}
           onToggleOutlet={smartHome.toggleOutlet}
           onToggleRoom={smartHome.setRoomPower}
           onUpdateBasePosition={smartHome.updateBasePosition}
