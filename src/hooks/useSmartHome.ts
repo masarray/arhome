@@ -8,6 +8,8 @@ import {
   rooms,
 } from "@/domain/smartHomeData";
 import type {
+  AutomationEvent,
+  AutomationEventTone,
   ConfiguredSmartDevice,
   DeviceMode,
   OutletKey,
@@ -24,6 +26,12 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 type Position = { x: string; y: string };
 
+type EventInput = {
+  message: string;
+  detail?: string;
+  tone?: AutomationEventTone;
+};
+
 type StoreState = {
   devices: SmartDevice[];
   configuredDevices: ConfiguredSmartDevice[];
@@ -34,9 +42,11 @@ type StoreState = {
   lockPosition: Position;
   climatePosition: Position;
   activeRoomIndex: number;
+  eventLog: AutomationEvent[];
 };
 
 const KEY = "mas.home.v2";
+const MAX_EVENTS = 14;
 
 const initialRoomPositions: Record<RoomKey, Position> = {
   bedroom: { x: rooms.find((r) => r.key === "bedroom")?.x ?? "32%", y: rooms.find((r) => r.key === "bedroom")?.y ?? "43%" },
@@ -52,6 +62,16 @@ const initialOutletPositions: Record<OutletKey, Position> = {
   "bedroom-desk": { x: outletPins.find((p) => p.key === "bedroom-desk")?.x ?? "30%", y: outletPins.find((p) => p.key === "bedroom-desk")?.y ?? "38%" },
 };
 
+function makeEvent(input: EventInput): AutomationEvent {
+  return {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    ts: Date.now(),
+    message: input.message,
+    detail: input.detail,
+    tone: input.tone ?? "info",
+  };
+}
+
 function defaultState(): StoreState {
   return {
     devices: initialDevices,
@@ -63,6 +83,15 @@ function defaultState(): StoreState {
     lockPosition: { x: "12.8%", y: "79.2%" },
     climatePosition: { x: "50.8%", y: "56.5%" },
     activeRoomIndex: 0,
+    eventLog: [
+      {
+        id: "boot-demo-ready",
+        ts: Date.now(),
+        message: "Apartment simulator ready",
+        detail: "Energy, devices, and billing synchronized",
+        tone: "success",
+      },
+    ],
   };
 }
 
@@ -80,6 +109,7 @@ function normalizeState(raw: Partial<StoreState>): StoreState {
     lockPosition: raw.lockPosition ?? fallback.lockPosition,
     climatePosition: raw.climatePosition ?? fallback.climatePosition,
     activeRoomIndex: clamp(raw.activeRoomIndex ?? fallback.activeRoomIndex, 0, rooms.length - 1),
+    eventLog: (raw.eventLog ?? fallback.eventLog).slice(0, MAX_EVENTS),
   };
 }
 
@@ -98,9 +128,15 @@ function notify() {
   for (const fn of listeners) fn();
 }
 
-function update(patch: Partial<StoreState> | ((s: StoreState) => Partial<StoreState>)) {
+function update(
+  patch: Partial<StoreState> | ((s: StoreState) => Partial<StoreState>),
+  event?: EventInput,
+) {
   const next = typeof patch === "function" ? patch(state) : patch;
   state = { ...state, ...next };
+  if (event) {
+    state = { ...state, eventLog: [makeEvent(event), ...state.eventLog].slice(0, MAX_EVENTS) };
+  }
   notify();
 }
 
@@ -111,54 +147,92 @@ function subscribe(fn: () => void) {
   };
 }
 
+function roomLabel(roomKey: RoomKey) {
+  return rooms.find((r) => r.key === roomKey)?.label ?? roomKey;
+}
+
+function outletLabel(outletKey: OutletKey) {
+  return outletPins.find((pin) => pin.key === outletKey)?.label ?? outletKey;
+}
+
 const actions = {
   setDevicePower(deviceId: string, power: boolean) {
-    update((s) => ({
-      devices: s.devices.map((d) =>
-        d.id === deviceId
-          ? {
-              ...d,
-              power,
-              status:
-                d.type === "lock"
-                  ? power
-                    ? "locked"
-                    : "standby"
-                  : power
-                    ? "active"
-                    : "standby",
-            }
-          : d,
-      ),
-    }));
+    const device = state.devices.find((d) => d.id === deviceId);
+    update(
+      (s) => ({
+        devices: s.devices.map((d) =>
+          d.id === deviceId
+            ? {
+                ...d,
+                power,
+                status:
+                  d.type === "lock"
+                    ? power
+                      ? "locked"
+                      : "standby"
+                    : power
+                      ? "active"
+                      : "standby",
+              }
+            : d,
+        ),
+      }),
+      device
+        ? {
+            message: `${device.name} ${power ? "ON" : "OFF"}`,
+            detail: device.room,
+            tone: power ? "success" : "info",
+          }
+        : undefined,
+    );
   },
   setDeviceValue(deviceId: string, value: number) {
-    update((s) => ({
-      devices: s.devices.map((d) =>
-        d.id === deviceId
-          ? {
-              ...d,
-              value,
-              power: d.type === "climate" ? true : d.power,
-              status: d.type === "climate" ? "active" : d.status,
-            }
-          : d,
-      ),
-    }));
+    const device = state.devices.find((d) => d.id === deviceId);
+    update(
+      (s) => ({
+        devices: s.devices.map((d) =>
+          d.id === deviceId
+            ? {
+                ...d,
+                value,
+                power: d.type === "climate" ? true : d.power,
+                status: d.type === "climate" ? "active" : d.status,
+              }
+            : d,
+        ),
+      }),
+      device
+        ? {
+            message: `${device.name} set to ${value}${device.unit ?? ""}`,
+            detail: "Energy load recalculated",
+            tone: "success",
+          }
+        : undefined,
+    );
   },
   setDeviceMode(deviceId: string, mode: DeviceMode) {
-    update((s) => ({
-      devices: s.devices.map((d) =>
-        d.id === deviceId
-          ? {
-              ...d,
-              mode,
-              power: d.type === "climate" ? true : d.power,
-              status: d.type === "climate" ? "active" : d.status,
-            }
-          : d,
-      ),
-    }));
+    const device = state.devices.find((d) => d.id === deviceId);
+    update(
+      (s) => ({
+        devices: s.devices.map((d) =>
+          d.id === deviceId
+            ? {
+                ...d,
+                mode,
+                power: d.type === "climate" ? true : d.power,
+                status: d.type === "climate" ? "active" : d.status,
+              }
+            : d,
+        ),
+      }),
+      device
+        ? {
+            message: `${device.name} mode ${mode}`,
+            detail: "Automation profile updated",
+            tone: "success",
+          }
+        : undefined,
+    );
   },
   toggleDoorLock() {
     const lock = state.devices.find((d) => d.id === "door-lock");
@@ -166,31 +240,49 @@ const actions = {
     actions.setDevicePower(lock.id, !lock.power);
   },
   setActiveRoomLighting(patch: Partial<RoomLightingState>) {
-    update((s) => {
-      const room = rooms[s.activeRoomIndex];
-      const current = s.roomLighting[room.key];
-      return {
-        roomLighting: {
-          ...s.roomLighting,
-          [room.key]: {
-            ...current,
-            ...patch,
-            brightness:
-              patch.brightness === undefined
-                ? current.brightness
-                : clamp(patch.brightness, 0, 100),
+    const activeRoom = rooms[state.activeRoomIndex];
+    const detail = activeRoom.label;
+    const message =
+      patch.on !== undefined
+        ? `${activeRoom.label} lighting ${patch.on ? "ON" : "OFF"}`
+        : patch.brightness !== undefined
+          ? `${activeRoom.label} brightness ${clamp(patch.brightness, 0, 100)}%`
+          : `${activeRoom.label} lighting updated`;
+    update(
+      (s) => {
+        const room = rooms[s.activeRoomIndex];
+        const current = s.roomLighting[room.key];
+        return {
+          roomLighting: {
+            ...s.roomLighting,
+            [room.key]: {
+              ...current,
+              ...patch,
+              brightness:
+                patch.brightness === undefined
+                  ? current.brightness
+                  : clamp(patch.brightness, 0, 100),
+            },
           },
-        },
-      };
-    });
+        };
+      },
+      { message, detail, tone: patch.on === false ? "info" : "success" },
+    );
   },
   setRoomPower(roomKey: RoomKey, power: boolean) {
-    update((s) => ({
-      roomLighting: {
-        ...s.roomLighting,
-        [roomKey]: { ...s.roomLighting[roomKey], on: power },
+    update(
+      (s) => ({
+        roomLighting: {
+          ...s.roomLighting,
+          [roomKey]: { ...s.roomLighting[roomKey], on: power },
+        },
+      }),
+      {
+        message: `${roomLabel(roomKey)} lighting ${power ? "ON" : "OFF"}`,
+        detail: "Apartment load updated",
+        tone: power ? "success" : "info",
       },
-    }));
+    );
   },
   selectRoom(roomKey: RoomKey) {
     const idx = rooms.findIndex((r) => r.key === roomKey);
@@ -202,9 +294,17 @@ const actions = {
     }));
   },
   toggleOutlet(outletKey: OutletKey) {
-    update((s) => ({
-      outletStates: { ...s.outletStates, [outletKey]: { on: !s.outletStates[outletKey].on } },
-    }));
+    const nextPower = !state.outletStates[outletKey].on;
+    update(
+      (s) => ({
+        outletStates: { ...s.outletStates, [outletKey]: { on: !s.outletStates[outletKey].on } },
+      }),
+      {
+        message: `${outletLabel(outletKey)} ${nextPower ? "ON" : "OFF"}`,
+        detail: "Smart outlet layer",
+        tone: nextPower ? "success" : "info",
+      },
+    );
   },
   updateRoomPosition(roomKey: RoomKey, x: string, y: string) {
     update((s) => ({ roomPositions: { ...s.roomPositions, [roomKey]: { x, y } } }));
@@ -217,14 +317,21 @@ const actions = {
     else update({ climatePosition: { x, y } });
   },
   saveConfiguredDevice(device: ConfiguredSmartDevice) {
-    update((s) => {
-      const exists = s.configuredDevices.some((d) => d.id === device.id);
-      return {
-        configuredDevices: exists
-          ? s.configuredDevices.map((d) => (d.id === device.id ? device : d))
-          : [...s.configuredDevices, device],
-      };
-    });
+    update(
+      (s) => {
+        const exists = s.configuredDevices.some((d) => d.id === device.id);
+        return {
+          configuredDevices: exists
+            ? s.configuredDevices.map((d) => (d.id === device.id ? device : d))
+            : [...s.configuredDevices, device],
+        };
+      },
+      {
+        message: `${device.name} paired`,
+        detail: `${roomLabel(device.roomKey)} · ${device.adapter}`,
+        tone: "success",
+      },
+    );
   },
   updateConfiguredDevicePosition(deviceId: string, x: string, y: string) {
     update((s) => ({
@@ -234,14 +341,35 @@ const actions = {
     }));
   },
   toggleConfiguredDevice(deviceId: string) {
-    update((s) => ({
-      configuredDevices: s.configuredDevices.map((d) =>
-        d.id === deviceId ? { ...d, power: !d.power } : d,
-      ),
-    }));
+    const device = state.configuredDevices.find((d) => d.id === deviceId);
+    const nextPower = !device?.power;
+    update(
+      (s) => ({
+        configuredDevices: s.configuredDevices.map((d) =>
+          d.id === deviceId ? { ...d, power: !d.power } : d,
+        ),
+      }),
+      device
+        ? {
+            message: `${device.name} ${nextPower ? "ON" : "OFF"}`,
+            detail: `${roomLabel(device.roomKey)} · ${device.layer}`,
+            tone: nextPower ? "success" : "info",
+          }
+        : undefined,
+    );
   },
   deleteConfiguredDevice(deviceId: string) {
-    update((s) => ({ configuredDevices: s.configuredDevices.filter((d) => d.id !== deviceId) }));
+    const device = state.configuredDevices.find((d) => d.id === deviceId);
+    update(
+      (s) => ({ configuredDevices: s.configuredDevices.filter((d) => d.id !== deviceId) }),
+      device
+        ? {
+            message: `${device.name} removed`,
+            detail: "Device library updated",
+            tone: "warning",
+          }
+        : undefined,
+    );
   },
 };
 
