@@ -1,0 +1,39 @@
+.apartment-card.is-expanded {
+  position: fixed;
+  inset: 18px;
+  z-index: 80;
+  width: auto;
+  height: auto;
+  max-height: none;
+  border-radius: 30px;
+  box-shadow: 0 28px 70px rgba(31, 27, 45, 0.34);
+}
+
+.hero-live__bar.is-over {
+  background: linear-gradient(90deg, #ff7a4a, #d94646);
+}
+
+.warn-pill.is-over {
+  background: linear-gradient(145deg, #d94646, #a52f3a);
+}
+
+.invoice-sheet__simulation-banner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  background: rgba(124, 107, 255, 0.10);
+  font-size: 10.5px;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.invoice-sheet__logo {
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent-2), #4e35b1);
+  box-shadow: 0 12px 24px rgba(92, 67, 184, 0.26);
+}
