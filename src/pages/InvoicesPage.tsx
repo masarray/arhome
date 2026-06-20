@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Check, Download, FileText, Loader2, Sparkles, X } from "lucide-react";
 import { useInvoices } from "@/hooks/useInvoices";
-import { billing, type Invoice } from "@/services/billingEngine";
+import { billing } from "@/services/billingEngine";
 import { TARIFF, formatRupiah } from "@/domain/tariff";
 
 function formatDate(ts: number) {
@@ -50,15 +50,15 @@ export function InvoicesPage() {
       <header className="page-header">
         <div>
           <span className="page-eyebrow">Tagihan Otomatis</span>
-          <h1>Invoice PLN Pascabayar</h1>
+          <h1>Tagihan Energi Apartemen</h1>
           <p>
             {invoices.length} invoice tersimpan · Sisa belum lunas{" "}
             <b>{formatRupiah(totalOutstanding)}</b>
           </p>
         </div>
         <div className="page-header__actions">
-          <button type="button" className="ghost-btn" onClick={() => billing.generateNextDemo()}>
-            <Sparkles size={14} /> Simulate next month
+          <button type="button" className="ghost-btn" onClick={() => billing.generatePreviousMonthDemo()}>
+            <Sparkles size={14} /> Buat tagihan bulan lalu
           </button>
         </div>
       </header>
@@ -67,7 +67,7 @@ export function InvoicesPage() {
         <aside className="invoice-list" aria-label="Daftar invoice">
           {invoices.length === 0 ? (
             <p className="invoice-list__empty">
-              Belum ada invoice. Tekan <b>Simulate next month</b> untuk membuat satu untuk demo.
+              Belum ada invoice. Tekan <b>Buat tagihan bulan lalu</b> untuk membuat satu untuk demo.
             </p>
           ) : (
             invoices.map((inv) => (
@@ -83,9 +83,7 @@ export function InvoicesPage() {
                 </span>
                 <span className="invoice-list-row__price">
                   <em>{formatRupiah(inv.breakdown.total)}</em>
-                  <span
-                    className={`invoice-status invoice-status--${inv.status}`}
-                  >
+                  <span className={`invoice-status invoice-status--${inv.status}`}>
                     {inv.status === "paid" ? "Lunas" : "Belum"}
                   </span>
                 </span>
@@ -97,21 +95,12 @@ export function InvoicesPage() {
         {selected ? (
           <article className="invoice-detail">
             <div className="invoice-detail__actions">
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={downloadPdf}
-                disabled={downloading}
-              >
+              <button type="button" className="primary-btn" onClick={downloadPdf} disabled={downloading}>
                 {downloading ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
                 Download PDF
               </button>
               {selected.status === "unpaid" ? (
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={() => billing.markPaid(selected.id)}
-                >
+                <button type="button" className="ghost-btn" onClick={() => billing.markPaid(selected.id)}>
                   <Check size={14} /> Tandai lunas
                 </button>
               ) : (
@@ -119,11 +108,7 @@ export function InvoicesPage() {
                   <Check size={14} /> Sudah lunas · {selected.paidAt ? formatDate(selected.paidAt) : ""}
                 </span>
               )}
-              <button
-                type="button"
-                className="ghost-btn ghost-btn--danger"
-                onClick={() => billing.remove(selected.id)}
-              >
+              <button type="button" className="ghost-btn ghost-btn--danger" onClick={() => billing.remove(selected.id)}>
                 <X size={14} /> Hapus
               </button>
             </div>
@@ -132,10 +117,10 @@ export function InvoicesPage() {
               <header className="invoice-sheet__head">
                 <div>
                   <span className="invoice-sheet__brand">
-                    <span className="invoice-sheet__logo">PLN</span>
+                    <span className="invoice-sheet__logo">ALM</span>
                     <div>
-                      <strong>PT PLN (Persero)</strong>
-                      <small>Tagihan rekening listrik</small>
+                      <strong>Aruna Living Management</strong>
+                      <small>Tagihan energi apartemen</small>
                     </div>
                   </span>
                 </div>
@@ -147,16 +132,20 @@ export function InvoicesPage() {
                 </div>
               </header>
 
+              <div className="invoice-sheet__simulation-banner">
+                SIMULASI BILLING APARTEMEN — data demo dari smart meter virtual
+              </div>
+
               <section className="invoice-sheet__customer">
                 <div>
-                  <small>Pelanggan</small>
+                  <small>Unit</small>
                   <strong>Mas Ari · Apartment 17 / B</strong>
                   <span>Bogor, Jawa Barat</span>
                 </div>
                 <div>
-                  <small>Golongan</small>
+                  <small>Paket Tarif</small>
                   <strong>{TARIFF.goldenName}</strong>
-                  <span>Daya {TARIFF.contractVA} VA</span>
+                  <span>Kontrak {TARIFF.contractVA} VA</span>
                 </div>
                 <div>
                   <small>Diterbitkan</small>
@@ -192,12 +181,11 @@ export function InvoicesPage() {
 
               <footer className="invoice-sheet__foot">
                 <p>
-                  Pembayaran melalui PLN Mobile, bank mitra, atau VA. Tagihan
-                  ini di-generate otomatis oleh MasAri Smart Apartment dari
-                  pengukuran realtime smart meter unit.
+                  Pembayaran demo melalui aplikasi tenant atau akun pengelola. Tagihan ini dibuat otomatis oleh
+                  MasAri Smart Apartment dari pengukuran realtime smart meter unit.
                 </p>
                 <small>
-                  <FileText size={12} /> Dokumen elektronik — tidak memerlukan tanda tangan basah.
+                  <FileText size={12} /> Dokumen simulasi untuk demo energy management.
                 </small>
               </footer>
             </div>
