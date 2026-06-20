@@ -31,6 +31,14 @@ function previousMonthKey(now = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function demoFallbackKwh(period: string) {
+  let hash = 0;
+  for (const char of period) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  const wave = Math.sin(hash) * 10000;
+  const fraction = wave - Math.floor(wave);
+  return 180 + fraction * 160;
+}
+
 function listMissingMonths(invoices: Invoice[]): string[] {
   const have = new Set(invoices.map((i) => i.period));
   const result: string[] = [];
@@ -76,7 +84,7 @@ class BillingEngine {
     const exists = this.invoices.find((i) => i.period === period);
     if (exists) return exists;
     const { kwh, perDevice } = energySim.consumeMonthForInvoice(period);
-    const safeKwh = kwh > 0 ? kwh : 120 + Math.random() * 240; // demo fallback
+    const safeKwh = kwh > 0 ? kwh : demoFallbackKwh(period);
     const breakdown = buildInvoiceBreakdown(safeKwh);
     const [y, m] = period.split("-").map(Number);
     const issuedAt = new Date(y, m, 3).getTime(); // 3rd of next month
@@ -90,6 +98,7 @@ class BillingEngine {
       kwh: safeKwh,
       breakdown,
       status: "unpaid",
+      paidAt: undefined,
       perDevice,
     };
     this.invoices.push(invoice);
@@ -106,12 +115,17 @@ class BillingEngine {
     return this.closeMonth(period);
   }
 
-  /** Demo helper: also produces the "previous" month at full real value. */
-  generateNextDemo() {
+  /** Demo helper: produces the previous billing period from the simulator data. */
+  generatePreviousMonthDemo() {
     const period = previousMonthKey();
     const exists = this.invoices.find((i) => i.period === period);
     if (exists) return exists;
     return this.closeMonth(period);
+  }
+
+  /** Backward-compatible alias for older UI code. */
+  generateNextDemo() {
+    return this.generatePreviousMonthDemo();
   }
 
   markPaid(id: string) {
