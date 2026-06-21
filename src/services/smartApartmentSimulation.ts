@@ -104,6 +104,19 @@ function buildConfiguredLoad(device: ConfiguredSmartDevice): DeviceLoad {
   };
 }
 
+function vacuumWatts(vacuum?: SmartDevice) {
+  if (!vacuum) return { watts: 2.2, on: false };
+  if (vacuum.status === "docked" || vacuum.status === "standby") return { watts: 2.2, on: false };
+  if (vacuum.status === "paused") return { watts: 6, on: false };
+  if (vacuum.status === "returning") return { watts: 18, on: true };
+  if (vacuum.status === "spot") return { watts: 34, on: true };
+
+  if (!vacuum.power) return { watts: 2.2, on: false };
+  if (vacuum.mode === "manual") return { watts: 42, on: true };
+  if (vacuum.mode === "comfort") return { watts: 31, on: true };
+  return { watts: 24, on: true };
+}
+
 export function buildSmartApartmentDeviceLoads(
   state: SmartApartmentSimulationState,
   now = new Date(),
@@ -140,6 +153,7 @@ export function buildSmartApartmentDeviceLoads(
   const laundry = laundryProfile > 0.18 ? 1200 * laundryProfile : 0;
   const activeOutlets = Object.values(state.outletStates).filter((outlet) => outlet.on).length;
   const outletWatts = activeOutlets > 0 ? activeOutlets * (70 + eveningScore * 35) + 4 : 1;
+  const robotVacuumLoad = vacuumWatts(vacuum);
 
   const builtInLoads: DeviceLoad[] = [
     { id: "ac-bedroom", label: "AC Bedroom", room: "Bedroom", category: "climate", watts: acBedroom, on: true },
@@ -163,8 +177,8 @@ export function buildSmartApartmentDeviceLoads(
       label: "Robot vacuum",
       room: "Bedroom",
       category: "appliance",
-      watts: vacuum?.power ? 28 : 2.2,
-      on: Boolean(vacuum?.power),
+      watts: robotVacuumLoad.watts,
+      on: robotVacuumLoad.on,
     },
     { id: "outlets", label: "Smart outlets", room: "All", category: "appliance", watts: outletWatts, on: activeOutlets > 0 },
     { id: "camera", label: "Camera", room: "Living", category: "iot", watts: camera?.power ? 6 : 0.6, on: Boolean(camera?.power) },
