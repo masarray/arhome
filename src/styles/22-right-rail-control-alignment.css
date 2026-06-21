@@ -1,0 +1,266 @@
+/* OWNER: final right-rail control alignment.
+ * Goal: AC modes sit to the right of the gauge, robot actions and suction modes sit in one clean right-side stack.
+ */
+
+/* Climate card: gauge left, AC mode buttons right. */
+.panel--climate.smart-device-card {
+  display: grid;
+  grid-template-columns: minmax(126px, 1fr) minmax(68px, 78px);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "gauge modes";
+  column-gap: 10px;
+  row-gap: 7px;
+}
+
+.panel--climate .panel__header {
+  grid-area: header;
+}
+
+.panel--climate .climate-gauge-wrap {
+  grid-area: gauge;
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+  place-items: center;
+  align-self: stretch;
+  justify-self: stretch;
+  z-index: 1;
+}
+
+.panel--climate .climate-mode-row {
+  grid-area: modes;
+  position: relative;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-self: stretch;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.panel--climate .climate-mode-chip {
+  min-height: 0;
+  height: 100%;
+  padding: 4px 3px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 9.4px;
+  line-height: 1;
+}
+
+.panel--climate .climate-mode-chip__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.panel--climate .climate-mode-chip__icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.panel--climate .circ-gauge {
+  width: 128px;
+  height: 128px;
+}
+
+.panel--climate .circ-gauge__svg {
+  width: 154px;
+  height: 154px;
+  margin: -13px;
+}
+
+.panel--climate .circ-gauge__center {
+  width: 88px;
+}
+
+.panel--climate .circ-gauge__value {
+  min-width: 68px;
+  font-size: 27px;
+}
+
+.panel--climate .circ-gauge__label {
+  font-size: 8.9px;
+}
+
+/* Robot card: image gets the left side; all controls stay in one right-side stack. */
+.panel--cleaning.smart-device-card {
+  grid-template-rows: auto minmax(0, 1fr);
+  row-gap: 8px;
+}
+
+.vacuum-compact-body.vacuum-compact-body--actions-right {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(124px, 1.15fr) minmax(100px, 0.88fr);
+  gap: 11px;
+  align-items: stretch;
+}
+
+.vacuum-robot-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 2px 0 1px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: center;
+  border-radius: 24px;
+  background: radial-gradient(circle at 52% 46%, rgba(255, 255, 255, 0.96), rgba(245, 241, 252, 0.36) 60%, transparent 78%);
+}
+
+.vacuum-robot-stage img {
+  width: min(148px, 100%);
+  max-height: 96px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 16px 22px rgba(60, 48, 84, 0.13));
+}
+
+.vacuum-command-stack {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 34px 32px minmax(0, 1fr);
+  gap: 7px;
+  align-content: stretch;
+}
+
+.vacuum-command-stack .vacuum-primary-action {
+  width: 100%;
+  height: 34px;
+  grid-column: auto;
+  padding-inline: 10px;
+  justify-content: center;
+}
+
+.vacuum-icon-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.vacuum-icon-actions .smart-control-button {
+  width: 100%;
+  height: 32px;
+  border-radius: 14px;
+}
+
+.vacuum-mode-row.smart-segment-row {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.vacuum-mode-row.smart-segment-row > svg {
+  align-self: start;
+  justify-self: center;
+  margin-top: 6px;
+}
+
+.vacuum-mode-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.vacuum-mode-grid .vacuum-mode-chip {
+  height: 24px;
+  min-width: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  font-size: 9.5px;
+  line-height: 1;
+}
+
+.vacuum-substatus--stage {
+  width: 100%;
+  max-width: 142px;
+  padding-inline: 4px;
+  text-align: center;
+}
+
+/* Primary hover must invert to purple, not disappear as white-on-white. */
+.smart-control-button--primary:hover,
+.smart-control-button--primary:focus-visible {
+  color: var(--accent);
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(76, 59, 140, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.smart-control-button--primary:hover svg,
+.smart-control-button--primary:focus-visible svg,
+.smart-control-button--primary:hover span,
+.smart-control-button--primary:focus-visible span {
+  color: var(--accent);
+}
+
+@media (max-height: 860px) {
+  .panel--climate.smart-device-card {
+    grid-template-columns: minmax(116px, 1fr) minmax(64px, 74px);
+    column-gap: 8px;
+  }
+
+  .panel--climate .circ-gauge {
+    width: 118px;
+    height: 118px;
+  }
+
+  .panel--climate .circ-gauge__svg {
+    width: 142px;
+    height: 142px;
+    margin: -12px;
+  }
+
+  .panel--climate .circ-gauge__value {
+    font-size: 25px;
+  }
+
+  .panel--climate .climate-mode-row {
+    gap: 5px;
+  }
+
+  .panel--climate .climate-mode-chip {
+    border-radius: 14px;
+    font-size: 9px;
+  }
+
+  .vacuum-compact-body.vacuum-compact-body--actions-right {
+    grid-template-columns: minmax(112px, 1.12fr) minmax(94px, 0.88fr);
+    gap: 9px;
+  }
+
+  .vacuum-robot-stage img {
+    width: min(130px, 100%);
+    max-height: 84px;
+  }
+
+  .vacuum-command-stack {
+    grid-template-rows: 32px 30px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .vacuum-icon-actions .smart-control-button,
+  .vacuum-command-stack .vacuum-primary-action {
+    height: 30px;
+  }
+
+  .vacuum-mode-grid .vacuum-mode-chip {
+    height: 22px;
+    font-size: 9px;
+  }
+}
