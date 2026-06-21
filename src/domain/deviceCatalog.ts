@@ -1,5 +1,5 @@
 // Realistic smart-device catalog used by the Add Device wizard.
-// Each entry mimics a real product with sensible power draw figures.
+// Each entry mimics products commonly seen in Indonesian marketplace and AliExpress-style smart home categories.
 import type { ConfiguredSmartDevice, ControlLayerKey, IntegrationAdapter, SmartDeviceCategory } from "./smartHomeTypes";
 
 export type Protocol = "tuya" | "matter" | "ble" | "wifi" | "zigbee";
@@ -12,11 +12,11 @@ export type CatalogProduct = {
   layer: ControlLayerKey;
   protocols: Protocol[];
   adapter: IntegrationAdapter;
-  ratedWatts: number; // peak/typical
+  ratedWatts: number;
   standbyWatts: number;
   capabilities: string[];
   description: string;
-  accent: string; // hex tint for chip
+  accent: string;
 };
 
 export const PROTOCOLS: Record<Protocol, { label: string; tagline: string; tone: string }> = {
@@ -24,7 +24,7 @@ export const PROTOCOLS: Record<Protocol, { label: string; tagline: string; tone:
   matter: { label: "Matter over Wi-Fi", tagline: "Vendor-agnostic standard (CSA)", tone: "#22c55e" },
   ble: { label: "Bluetooth LE", tagline: "Local pairing within 10 m", tone: "#3b82f6" },
   wifi: { label: "Wi-Fi Direct", tagline: "SoftAP provisioning", tone: "#a855f7" },
-  zigbee: { label: "Zigbee 3.0", tagline: "via Aqara / SLZB-06 hub", tone: "#eab308" },
+  zigbee: { label: "Zigbee 3.0", tagline: "via Aqara / SONOFF / SLZB hub", tone: "#eab308" },
 };
 
 export const CATALOG: CatalogProduct[] = [
@@ -71,6 +71,20 @@ export const CATALOG: CatalogProduct[] = [
     accent: "#a855f7",
   },
   {
+    sku: "BARDI-RGBWW-12W",
+    brand: "BARDI",
+    model: "Smart Light Bulb RGBWW 12W",
+    category: "smart-bulb",
+    layer: "lighting",
+    protocols: ["tuya", "wifi"],
+    adapter: "Tuya",
+    ratedWatts: 12,
+    standbyWatts: 0.5,
+    capabilities: ["Power", "Brightness", "RGB", "Warm/cool white", "Schedule"],
+    description: "Indonesian-market RGBWW bulb for smart apartment demos.",
+    accent: "#fb7185",
+  },
+  {
     sku: "TUYA-SP10-16A",
     brand: "Tuya",
     model: "SP10 16A Smart Plug",
@@ -80,7 +94,7 @@ export const CATALOG: CatalogProduct[] = [
     adapter: "Tuya",
     ratedWatts: 3520,
     standbyWatts: 0.7,
-    capabilities: ["Power", "Energy meter", "Schedule", "Overload protection"],
+    capabilities: ["Power", "Energy meter", "Schedule", "Load alert"],
     description: "Tuya 16A plug, real-time wattage meter, EU / ID schuko.",
     accent: "#ff6b35",
   },
@@ -97,6 +111,90 @@ export const CATALOG: CatalogProduct[] = [
     capabilities: ["Power", "Schedule", "Inching"],
     description: "Compact 15A plug, Matter-over-Wi-Fi.",
     accent: "#22c55e",
+  },
+  {
+    sku: "SONOFF-S60-ZB",
+    brand: "Sonoff",
+    model: "S60 Zigbee Plug E/F",
+    category: "smart-outlet",
+    layer: "energy",
+    protocols: ["zigbee"],
+    adapter: "Home Assistant",
+    ratedWatts: 3680,
+    standbyWatts: 0.6,
+    capabilities: ["Power", "Energy meter", "Timer", "Zigbee reporting"],
+    description: "Zigbee smart plug with energy reporting, common Home Assistant path.",
+    accent: "#eab308",
+  },
+  {
+    sku: "SONOFF-POW-ELITE",
+    brand: "Sonoff",
+    model: "POW Elite 20A Meter Switch",
+    category: "energy-meter",
+    layer: "energy",
+    protocols: ["wifi"],
+    adapter: "Home Assistant",
+    ratedWatts: 4600,
+    standbyWatts: 1.2,
+    capabilities: ["Real-time W", "Voltage", "Current", "kWh history", "Load alarm"],
+    description: "Panel-style smart power meter switch with local LCD and history.",
+    accent: "#0ea5e9",
+  },
+  {
+    sku: "SONOFF-SPM-MAIN",
+    brand: "Sonoff",
+    model: "SPM Stackable Power Meter",
+    category: "energy-meter",
+    layer: "energy",
+    protocols: ["wifi"],
+    adapter: "Home Assistant",
+    ratedWatts: 4600,
+    standbyWatts: 1.5,
+    capabilities: ["Multi-channel meter", "kWh", "Load trend", "Alarm"],
+    description: "Stackable energy monitor for multi-circuit apartment loads.",
+    accent: "#0284c7",
+  },
+  {
+    sku: "SHELLY-PLUS-1PM",
+    brand: "Shelly",
+    model: "Plus 1PM Relay Meter",
+    category: "energy-meter",
+    layer: "energy",
+    protocols: ["wifi", "ble"],
+    adapter: "Home Assistant",
+    ratedWatts: 3840,
+    standbyWatts: 1.2,
+    capabilities: ["Relay", "Power meter", "Voltage/current", "Local Web UI", "Protection"],
+    description: "Compact relay with built-in power measurement for wall boxes.",
+    accent: "#0f766e",
+  },
+  {
+    sku: "TUYA-DIN-63A-METER",
+    brand: "Tuya",
+    model: "DIN Rail 63A kWh Meter",
+    category: "energy-meter",
+    layer: "energy",
+    protocols: ["tuya", "wifi"],
+    adapter: "Tuya",
+    ratedWatts: 14490,
+    standbyWatts: 1.5,
+    capabilities: ["Voltage", "Current", "Power", "kWh", "Remote report"],
+    description: "Single-phase DIN rail meter often sold for Smart Life energy dashboards.",
+    accent: "#f97316",
+  },
+  {
+    sku: "TUYA-ZB-CLAMP-80A",
+    brand: "Tuya",
+    model: "Zigbee 80A Clamp Meter",
+    category: "energy-meter",
+    layer: "energy",
+    protocols: ["zigbee", "tuya"],
+    adapter: "Tuya",
+    ratedWatts: 18400,
+    standbyWatts: 0.8,
+    capabilities: ["Non-invasive CT", "Power", "Voltage", "kWh", "Realtime report"],
+    description: "Clamp-style energy monitor for non-invasive mains measurement demos.",
+    accent: "#f59e0b",
   },
   {
     sku: "AQARA-T1-IR",
@@ -127,6 +225,20 @@ export const CATALOG: CatalogProduct[] = [
     accent: "#3b82f6",
   },
   {
+    sku: "BARDI-IR-REMOTE",
+    brand: "BARDI",
+    model: "Smart IR Remote",
+    category: "ac-controller",
+    layer: "climate",
+    protocols: ["tuya", "wifi"],
+    adapter: "Tuya",
+    ratedWatts: 1.2,
+    standbyWatts: 0.4,
+    capabilities: ["IR AC", "TV", "Scene", "Schedule"],
+    description: "Indonesian-market Tuya-compatible IR controller for AC and media devices.",
+    accent: "#f43f5e",
+  },
+  {
     sku: "XIAOMI-G1",
     brand: "Xiaomi",
     model: "Robot Vacuum G1",
@@ -139,6 +251,20 @@ export const CATALOG: CatalogProduct[] = [
     capabilities: ["Vacuum", "Mop", "Schedule", "Room clean"],
     description: "Xiaomi Mi G1, 2200 Pa, LDS-free navigation.",
     accent: "#ff6b35",
+  },
+  {
+    sku: "ROBOROCK-Q7-MAX",
+    brand: "Roborock",
+    model: "Q7 Max Robot Vacuum",
+    category: "robot-cleaner",
+    layer: "cleaning",
+    protocols: ["wifi"],
+    adapter: "Home Assistant",
+    ratedWatts: 58,
+    standbyWatts: 3.2,
+    capabilities: ["Vacuum", "Mop", "Map", "Room clean", "Dock"],
+    description: "Mapped robot cleaner class for premium smart apartment demos.",
+    accent: "#64748b",
   },
   {
     sku: "AQARA-N100",
@@ -169,6 +295,34 @@ export const CATALOG: CatalogProduct[] = [
     accent: "#3b82f6",
   },
   {
+    sku: "AQARA-FP2",
+    brand: "Aqara",
+    model: "Presence Sensor FP2",
+    category: "sensor",
+    layer: "security",
+    protocols: ["wifi", "matter"],
+    adapter: "Home Assistant",
+    ratedWatts: 1.8,
+    standbyWatts: 1.2,
+    capabilities: ["mmWave presence", "Zones", "Light sensor", "Multi-person", "Local automation"],
+    description: "Presence sensor for room-aware lighting and AC energy optimization.",
+    accent: "#2563eb",
+  },
+  {
+    sku: "SONOFF-SNZB-05P",
+    brand: "Sonoff",
+    model: "SNZB-05P Water Leak Sensor",
+    category: "sensor",
+    layer: "security",
+    protocols: ["zigbee"],
+    adapter: "Home Assistant",
+    ratedWatts: 0.05,
+    standbyWatts: 0.02,
+    capabilities: ["Leak alert", "Battery", "Zigbee report", "Scene trigger"],
+    description: "Water leak sensor for kitchen/bathroom automation and alerts.",
+    accent: "#06b6d4",
+  },
+  {
     sku: "EWELINK-CURTAIN",
     brand: "eWeLink",
     model: "Curtain Motor Pro",
@@ -182,11 +336,54 @@ export const CATALOG: CatalogProduct[] = [
     description: "Track motor with Matter, 1.5 m/s, anti-pinch.",
     accent: "#22c55e",
   },
+  {
+    sku: "SONOFF-MINIR4M",
+    brand: "Sonoff",
+    model: "MINIR4M Matter Switch",
+    category: "wall-switch",
+    layer: "lighting",
+    protocols: ["matter", "wifi"],
+    adapter: "Matter",
+    ratedWatts: 2400,
+    standbyWatts: 0.5,
+    capabilities: ["Relay", "Matter", "External switch", "Schedule"],
+    description: "Compact in-wall switch module for smart lighting retrofit.",
+    accent: "#22c55e",
+  },
+  {
+    sku: "SONOFF-ZBMINIR2",
+    brand: "Sonoff",
+    model: "ZBMINIR2 Zigbee Switch",
+    category: "wall-switch",
+    layer: "lighting",
+    protocols: ["zigbee"],
+    adapter: "Home Assistant",
+    ratedWatts: 2400,
+    standbyWatts: 0.4,
+    capabilities: ["Relay", "Zigbee", "External switch", "Scene"],
+    description: "Zigbee in-wall switch module for local automation hubs.",
+    accent: "#eab308",
+  },
+  {
+    sku: "TP-LINK-TAPO-C225",
+    brand: "TP-Link Tapo",
+    model: "C225 Pan/Tilt Camera",
+    category: "camera",
+    layer: "camera",
+    protocols: ["wifi"],
+    adapter: "Home Assistant",
+    ratedWatts: 6,
+    standbyWatts: 1.2,
+    capabilities: ["Camera", "Privacy shutter", "Motion", "Two-way audio"],
+    description: "Indoor pan/tilt camera class for live security feed demo.",
+    accent: "#3b82f6",
+  },
 ];
 
 export const CATEGORY_LABEL: Record<SmartDeviceCategory, string> = {
   "smart-bulb": "Smart Bulb",
   "smart-outlet": "Smart Plug / Outlet",
+  "energy-meter": "Power / Energy Meter",
   "wall-switch": "Switch / Curtain",
   "ac-controller": "AC Controller (IR)",
   "robot-cleaner": "Robot Vacuum",
@@ -195,7 +392,6 @@ export const CATEGORY_LABEL: Record<SmartDeviceCategory, string> = {
   sensor: "Sensor",
 };
 
-// Pseudo-discovery: produce 1-2 fake found devices for a chosen product.
 export function pseudoDiscover(product: CatalogProduct) {
   const mac = () =>
     Array.from({ length: 6 })
@@ -216,7 +412,6 @@ export function pseudoDiscover(product: CatalogProduct) {
   }));
 }
 
-// Convert a catalog product + discovered slot into a ConfiguredSmartDevice.
 export function instantiateDevice(
   product: CatalogProduct,
   name: string,
