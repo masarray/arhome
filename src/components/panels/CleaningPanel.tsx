@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { BatteryCharging, Home, MapPin, Pause, Play, Radar, Sparkles } from "lucide-react";
+import { BatteryCharging, Home, MapPin, Pause, Play, Radar } from "lucide-react";
 import vacuum from "@/assets/robot-cleaner-xiaomi-transparent.webp";
 import type { DeviceMode, SmartDevice, VacuumCommand } from "@/domain/smartHomeTypes";
 
@@ -7,6 +7,7 @@ type CleaningPanelProps = {
   device?: SmartDevice;
   onCommand: (deviceId: string, command: VacuumCommand) => void;
   onModeChange: (deviceId: string, mode: DeviceMode) => void;
+  onBatteryChange?: (deviceId: string, batteryLevel: number) => void;
 };
 
 type TipButtonProps = {
@@ -52,16 +53,16 @@ function TipButton({ className = "", label, tip, onClick, children }: TipButtonP
 }
 
 function batteryDeltaPerMinute(status: string, mode: DeviceMode) {
-  if (status === "docked" || status === "standby") return 0.34;
-  if (status === "returning") return -0.08;
-  if (status === "paused") return -0.015;
-  if (status === "spot") return -0.24;
+  if (status === "docked" || status === "standby") return 0.42;
+  if (status === "returning") return -0.06;
+  if (status === "paused") return -0.01;
+  if (status === "spot") return -0.26;
   if (status === "cleaning" || status === "active") {
-    if (mode === "manual") return -0.23;
-    if (mode === "comfort") return -0.16;
-    return -0.11;
+    if (mode === "manual") return -0.26;
+    if (mode === "comfort") return -0.18;
+    return -0.12;
   }
-  return -0.02;
+  return -0.015;
 }
 
 function batteryStateLabel(status: string) {
@@ -87,9 +88,10 @@ function VacuumBattery({ level, charging }: { level: number; charging: boolean }
   );
 }
 
-export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanelProps) {
+export function CleaningPanel({ device, onCommand, onModeChange, onBatteryChange }: CleaningPanelProps) {
   const [now, setNow] = useState(() => Date.now());
   const batterySession = useRef({ signature: "", startedAt: Date.now(), base: 64 });
+  const lastSyncedBattery = useRef<number | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1600);
@@ -110,7 +112,7 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
   }
 
   const elapsedMinutes = Math.max(0, (now - batterySession.current.startedAt) / 60000);
-  const microPulse = Math.sin(now / 4200) * 0.35;
+  const microPulse = Math.sin(now / 4200) * 0.22;
   const liveBattery = clamp(
     batterySession.current.base + batteryDeltaPerMinute(device.status, currentMode) * elapsedMinutes + microPulse,
     5,
@@ -123,6 +125,14 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
     : device.status === "returning"
       ? "Docking path locked"
       : "09:00 AM · Next cleaning";
+
+  useEffect(() => {
+    if (!onBatteryChange) return;
+    const current = lastSyncedBattery.current ?? Math.round(batteryBase);
+    if (Math.abs(current - battery) < 1) return;
+    lastSyncedBattery.current = battery;
+    onBatteryChange(device.id, battery);
+  }, [battery, batteryBase, device.id, onBatteryChange]);
 
   return (
     <section className="panel panel--cleaning compact-panel smart-device-card">
@@ -166,7 +176,6 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
           </div>
 
           <div className="vacuum-mode-row smart-segment-row" aria-label="Robot suction mode">
-            <Sparkles size={13} aria-hidden />
             <div className="vacuum-mode-grid">
               {modeOptions.map((option) => (
                 <button
