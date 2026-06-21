@@ -132,8 +132,8 @@ export const initialDevices: SmartDevice[] = [
     name: "Live camera",
     room: "Living room",
     type: "camera",
-    status: "online",
-    power: true,
+    status: "standby",
+    power: false,
   },
   {
     id: "energy-meter",
