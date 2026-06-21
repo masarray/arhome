@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BatteryCharging, BatteryMedium, Home, MapPin, Pause, Play, Radar, Sparkles } from "lucide-react";
 import vacuum from "@/assets/robot-cleaner-xiaomi-transparent.webp";
 import type { DeviceMode, SmartDevice, VacuumCommand } from "@/domain/smartHomeTypes";
@@ -14,7 +14,7 @@ type TipButtonProps = {
   label: string;
   tip: string;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 const modeOptions: Array<{ mode: DeviceMode; label: string; tip: string }> = [
