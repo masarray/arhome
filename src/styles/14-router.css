@@ -7,6 +7,7 @@
 @import "./21-right-rail-stabilize.css";
 @import "./22-right-rail-control-alignment.css";
 @import "./23-right-rail-final-layout.css";
+@import "./24-device-card-final-polish.css";
 
 /* OWNER: small router-related cosmetic overrides */
 .sidebar-item:focus-visible {
