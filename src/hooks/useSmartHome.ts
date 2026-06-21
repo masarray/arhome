@@ -170,7 +170,7 @@ function vacuumEvent(command: VacuumCommand, device: SmartDevice): EventInput {
     case "pause":
       return { message: "Robot vacuum paused", detail: "Resume or dock when ready", tone: "info" };
     case "dock":
-      return { message: "Robot vacuum returning to dock", detail, tone: "info" };
+      return { message: "Robot vacuum docked", detail: "Charging started", tone: "success" };
     case "spot":
       return { message: "Spot clean started", detail, tone: "success" };
     case "locate":
@@ -260,13 +260,18 @@ const actions = {
           if (d.id !== deviceId) return d;
           if (command === "locate") return d;
           if (command === "pause") return { ...d, power: false, status: "paused" };
-          if (command === "dock") return { ...d, power: false, status: "returning" };
+          if (command === "dock") return { ...d, power: false, status: "docked" };
           if (command === "spot") return { ...d, power: true, status: "spot" };
           return { ...d, power: true, status: "cleaning" };
         }),
       }),
       vacuumEvent(command, device),
     );
+  },
+  syncDeviceTelemetry(deviceId: string, patch: Partial<Pick<SmartDevice, "value" | "status" | "power">>) {
+    update((s) => ({
+      devices: s.devices.map((d) => (d.id === deviceId ? { ...d, ...patch } : d)),
+    }));
   },
   toggleDoorLock() {
     const lock = state.devices.find((d) => d.id === "door-lock");
