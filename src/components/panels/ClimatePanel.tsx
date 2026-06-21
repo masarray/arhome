@@ -11,11 +11,11 @@ type ClimatePanelProps = {
   onModeChange: (deviceId: string, mode: DeviceMode) => void;
 };
 
-const climateModes: Array<{ key: DeviceMode; label: string; icon: typeof Snowflake }> = [
-  { key: "cool", label: "Cool", icon: Snowflake },
-  { key: "dry", label: "Dry", icon: Droplets },
-  { key: "fan", label: "Fan", icon: Wind },
-  { key: "auto", label: "Auto", icon: Waves },
+const climateModes: Array<{ key: DeviceMode; label: string; tip: string; icon: typeof Snowflake }> = [
+  { key: "cool", label: "Cool", tip: "Cool mode lowers room temperature", icon: Snowflake },
+  { key: "dry", label: "Dry", tip: "Dry mode reduces humidity", icon: Droplets },
+  { key: "fan", label: "Fan", tip: "Fan mode circulates air only", icon: Wind },
+  { key: "auto", label: "Auto", tip: "Auto mode balances cooling and fan speed", icon: Waves },
 ];
 
 export function ClimatePanel({
@@ -33,8 +33,8 @@ export function ClimatePanel({
   const currentMode = (device.mode ?? "cool") as DeviceMode;
 
   return (
-    <section className={`panel panel--climate compact-panel ${selected ? "is-selected" : ""}`}>
-      <div className="panel__header">
+    <section className={`panel panel--climate compact-panel smart-device-card ${selected ? "is-selected" : ""}`}>
+      <div className="panel__header smart-card-header">
         <div>
           <h2>Climate Control</h2>
           <p>{device.room} · 9.000 BTU inverter</p>
@@ -60,13 +60,19 @@ export function ClimatePanel({
         />
       </div>
 
-      <div className="climate-mode-row" aria-label="Climate modes">
+      <div
+        className="climate-mode-row smart-segment-row"
+        aria-label="Climate modes"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         {climateModes.map((mode) => {
           const Icon = mode.icon;
           return (
             <button
+              aria-label={`${mode.label} AC mode`}
               aria-pressed={currentMode === mode.key}
               className={`climate-mode-chip ${currentMode === mode.key ? "is-active" : ""}`}
+              data-smart-tip={mode.tip}
               key={mode.key}
               type="button"
               onClick={() => onModeChange(device.id, mode.key)}
