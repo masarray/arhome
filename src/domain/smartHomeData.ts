@@ -83,7 +83,7 @@ export const initialDevices: SmartDevice[] = [
     name: "Cleaning robot",
     room: "Bedroom",
     type: "vacuum",
-    status: "active",
+    status: "cleaning",
     power: true,
     value: 64,
     unit: "%",
