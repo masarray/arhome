@@ -137,13 +137,11 @@ export const initialDevices: SmartDevice[] = [
   },
   {
     id: "energy-meter",
-    name: "Energy guard",
+    name: "Smart energy meter",
     room: "Panel",
     type: "energy",
     status: "online",
     power: true,
-    value: 3.2,
-    unit: "kW",
     mode: "away",
   },
 ];
@@ -179,6 +177,20 @@ export const deviceCategoryCatalog = [
     adapters: ["Matter", "Tuya", "Home Assistant", "MQTT", "Simulator"],
   },
   {
+    category: "energy-meter",
+    label: "Power / energy meter",
+    layer: "energy",
+    capabilities: ["Voltage", "Current", "Power", "kWh history", "Load alarm"],
+    adapters: ["Tuya", "Home Assistant", "MQTT", "Simulator"],
+  },
+  {
+    category: "wall-switch",
+    label: "Switch / curtain",
+    layer: "lighting",
+    capabilities: ["Relay", "Scene", "Schedule", "Position"],
+    adapters: ["Matter", "Tuya", "Home Assistant", "MQTT", "Simulator"],
+  },
+  {
     category: "ac-controller",
     label: "AC controller",
     layer: "climate",
@@ -198,6 +210,20 @@ export const deviceCategoryCatalog = [
     layer: "security",
     capabilities: ["Lock", "Unlock", "Battery", "Access log"],
     adapters: ["Matter", "Tuya", "Home Assistant", "MQTT", "Simulator"],
+  },
+  {
+    category: "sensor",
+    label: "Sensor",
+    layer: "security",
+    capabilities: ["Motion", "Presence", "Door", "Leak", "Ambient data"],
+    adapters: ["Matter", "Tuya", "Home Assistant", "MQTT", "Simulator"],
+  },
+  {
+    category: "camera",
+    label: "IP camera",
+    layer: "camera",
+    capabilities: ["Live view", "Motion", "Privacy mode", "Two-way audio"],
+    adapters: ["Tuya", "Home Assistant", "MQTT", "Simulator"],
   },
 ] as const;
 
