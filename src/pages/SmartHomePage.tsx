@@ -99,6 +99,7 @@ export function SmartHomePage() {
             device={smartHome.vacuumDevice}
             onCommand={smartHome.controlVacuum}
             onModeChange={smartHome.setDeviceMode}
+            onBatteryChange={(deviceId, batteryLevel) => smartHome.syncDeviceTelemetry(deviceId, { value: batteryLevel })}
           />
           <LightingPanel
             activeLighting={smartHome.activeLighting}
