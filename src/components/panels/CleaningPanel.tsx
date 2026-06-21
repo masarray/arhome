@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BatteryCharging, BatteryMedium, Home, MapPin, Pause, Play, Radar, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { BatteryCharging, Home, MapPin, Pause, Play, Radar, Sparkles } from "lucide-react";
 import vacuum from "@/assets/robot-cleaner-xiaomi-transparent.webp";
 import type { DeviceMode, SmartDevice, VacuumCommand } from "@/domain/smartHomeTypes";
 
@@ -72,6 +72,21 @@ function batteryStateLabel(status: string) {
   return "Live battery";
 }
 
+function VacuumBattery({ level, charging }: { level: number; charging: boolean }) {
+  const tone = level < 25 ? "is-low" : level > 78 ? "is-high" : "";
+  const style = { "--battery-level": `${level}%` } as CSSProperties;
+
+  return (
+    <span className={`phone-battery-pill ${tone} ${charging ? "is-charging" : ""}`} aria-label={`Battery ${level}%`}>
+      <span className="phone-battery" aria-hidden style={style}>
+        <span className="phone-battery__fill" />
+      </span>
+      <strong>{level}%</strong>
+      {charging ? <BatteryCharging size={12} aria-hidden /> : null}
+    </span>
+  );
+}
+
 export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanelProps) {
   const [now, setNow] = useState(() => Date.now());
   const batterySession = useRef({ signature: "", startedAt: Date.now(), base: 64 });
@@ -103,7 +118,6 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
   );
   const battery = Math.round(liveBattery);
   const charging = device.status === "docked" || device.status === "standby";
-  const batteryTone = battery < 25 ? "is-low" : battery > 78 ? "is-high" : "";
   const nextRun = cleaning
     ? "Room scan active"
     : device.status === "returning"
@@ -112,75 +126,59 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
 
   return (
     <section className="panel panel--cleaning compact-panel smart-device-card">
-      <div className="panel__header smart-card-header">
-        <div>
+      <div className="panel__header smart-card-header vacuum-header">
+        <div className="vacuum-title">
           <h2>Robot Vacuum</h2>
           <p>{status} · {device.room}</p>
         </div>
-        <span className={`vacuum-status-pill ${cleaning ? "is-cleaning" : ""}`}>{status}</span>
+        <VacuumBattery level={battery} charging={charging} />
       </div>
 
-      <div className="vacuum-live-layout">
+      <div className="vacuum-compact-body">
         <div className="vacuum-robot-stage" aria-hidden>
           <img alt="" src={vacuum} />
         </div>
 
-        <div className="vacuum-live-stack">
-          <div className={`vacuum-battery-widget ${batteryTone}`} aria-label={`Robot vacuum battery ${battery}%`}>
-            <div className="vacuum-battery-widget__topline">
-              {charging ? <BatteryCharging size={15} /> : <BatteryMedium size={15} />}
-              <strong>{battery}%</strong>
-            </div>
-            <div className="vacuum-battery-meter" aria-hidden>
-              <span style={{ width: `${battery}%` }} />
-              <i />
-            </div>
-            <small>{batteryStateLabel(device.status)}</small>
-          </div>
-
-          <div className="vacuum-next-card">
-            <strong>{cleaning ? "Active map" : "Schedule"}</strong>
-            <span>{nextRun}</span>
-          </div>
+        <div className="vacuum-control-pad" aria-label="Robot vacuum controls">
+          <TipButton
+            className="smart-control-button--primary vacuum-primary-action"
+            label={cleaning ? "Pause cleaning" : "Start cleaning"}
+            tip={cleaning ? "Pause the current cleaning run" : "Start or resume room cleaning"}
+            onClick={() => onCommand(device.id, primaryCommand)}
+          >
+            {cleaning ? <Pause size={14} /> : <Play size={14} />}
+            <span>{cleaning ? "Pause" : "Start"}</span>
+          </TipButton>
+          <TipButton label="Return robot to dock" tip="Send robot to the charging dock" onClick={() => onCommand(device.id, "dock")}>
+            <Home size={14} />
+          </TipButton>
+          <TipButton label="Spot clean" tip="Clean a small focused area" onClick={() => onCommand(device.id, "spot")}>
+            <MapPin size={14} />
+          </TipButton>
+          <TipButton label="Locate robot" tip="Play a ping sound to find the robot" onClick={() => onCommand(device.id, "locate")}>
+            <Radar size={14} />
+          </TipButton>
         </div>
       </div>
 
-      <div className="vacuum-action-row smart-control-row" aria-label="Robot vacuum controls">
-        <TipButton
-          className="smart-control-button--primary"
-          label={cleaning ? "Pause cleaning" : "Start cleaning"}
-          tip={cleaning ? "Pause the current cleaning run" : "Start or resume room cleaning"}
-          onClick={() => onCommand(device.id, primaryCommand)}
-        >
-          {cleaning ? <Pause size={15} /> : <Play size={15} />}
-          <span>{cleaning ? "Pause" : "Start"}</span>
-        </TipButton>
-        <TipButton label="Return robot to dock" tip="Send robot to the charging dock" onClick={() => onCommand(device.id, "dock")}>
-          <Home size={15} />
-        </TipButton>
-        <TipButton label="Spot clean" tip="Clean a small focused area" onClick={() => onCommand(device.id, "spot")}>
-          <MapPin size={15} />
-        </TipButton>
-        <TipButton label="Locate robot" tip="Play a ping sound to find the robot" onClick={() => onCommand(device.id, "locate")}>
-          <Radar size={15} />
-        </TipButton>
-      </div>
-
-      <div className="vacuum-mode-row smart-segment-row" aria-label="Robot suction mode">
-        <Sparkles size={14} />
-        {modeOptions.map((option) => (
-          <button
-            aria-label={`${option.label} suction mode`}
-            aria-pressed={currentMode === option.mode}
-            className={`vacuum-mode-chip ${currentMode === option.mode ? "is-active" : ""}`}
-            data-smart-tip={option.tip}
-            key={option.mode}
-            type="button"
-            onClick={() => onModeChange(device.id, option.mode)}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className="vacuum-bottom-row">
+        <span className="vacuum-substatus">{batteryStateLabel(device.status)} · {nextRun}</span>
+        <div className="vacuum-mode-row smart-segment-row" aria-label="Robot suction mode">
+          <Sparkles size={13} />
+          {modeOptions.map((option) => (
+            <button
+              aria-label={`${option.label} suction mode`}
+              aria-pressed={currentMode === option.mode}
+              className={`vacuum-mode-chip ${currentMode === option.mode ? "is-active" : ""}`}
+              data-smart-tip={option.tip}
+              key={option.mode}
+              type="button"
+              onClick={() => onModeChange(device.id, option.mode)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
