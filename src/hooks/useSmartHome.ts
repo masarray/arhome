@@ -17,6 +17,7 @@ import type {
   RoomKey,
   RoomLightingState,
   SmartDevice,
+  VacuumCommand,
 } from "@/domain/smartHomeTypes";
 import { energySim } from "@/services/energySimulator";
 import { loadJSON, saveJSON } from "@/services/persistence";
@@ -155,6 +156,28 @@ function outletLabel(outletKey: OutletKey) {
   return outletPins.find((pin) => pin.key === outletKey)?.label ?? outletKey;
 }
 
+function statusForPower(device: SmartDevice, power: boolean): SmartDevice["status"] {
+  if (device.type === "lock") return power ? "locked" : "standby";
+  if (device.type === "vacuum") return power ? "cleaning" : "docked";
+  return power ? "active" : "standby";
+}
+
+function vacuumEvent(command: VacuumCommand, device: SmartDevice): EventInput {
+  const detail = `${device.room} · cleaning robot`;
+  switch (command) {
+    case "start":
+      return { message: "Robot vacuum started", detail, tone: "success" };
+    case "pause":
+      return { message: "Robot vacuum paused", detail: "Resume or dock when ready", tone: "info" };
+    case "dock":
+      return { message: "Robot vacuum returning to dock", detail, tone: "info" };
+    case "spot":
+      return { message: "Spot clean started", detail, tone: "success" };
+    case "locate":
+      return { message: "Robot vacuum locator ping", detail: "Beep signal sent", tone: "info" };
+  }
+}
+
 const actions = {
   setDevicePower(deviceId: string, power: boolean) {
     const device = state.devices.find((d) => d.id === deviceId);
@@ -165,14 +188,7 @@ const actions = {
             ? {
                 ...d,
                 power,
-                status:
-                  d.type === "lock"
-                    ? power
-                      ? "locked"
-                      : "standby"
-                    : power
-                      ? "active"
-                      : "standby",
+                status: statusForPower(d, power),
               }
             : d,
         ),
@@ -228,10 +244,28 @@ const actions = {
       device
         ? {
             message: `${device.name} mode ${mode}`,
-            detail: "Automation profile updated",
+            detail: dLabelForMode(device, mode),
             tone: "success",
           }
         : undefined,
+    );
+  },
+  controlVacuum(deviceId: string, command: VacuumCommand) {
+    const device = state.devices.find((d) => d.id === deviceId);
+    if (!device) return;
+
+    update(
+      (s) => ({
+        devices: s.devices.map((d) => {
+          if (d.id !== deviceId) return d;
+          if (command === "locate") return d;
+          if (command === "pause") return { ...d, power: false, status: "paused" };
+          if (command === "dock") return { ...d, power: false, status: "returning" };
+          if (command === "spot") return { ...d, power: true, status: "spot" };
+          return { ...d, power: true, status: "cleaning" };
+        }),
+      }),
+      vacuumEvent(command, device),
     );
   },
   toggleDoorLock() {
@@ -373,6 +407,15 @@ const actions = {
   },
 };
 
+function dLabelForMode(device: SmartDevice, mode: DeviceMode) {
+  if (device.type === "vacuum") {
+    if (mode === "eco") return "Quiet suction";
+    if (mode === "comfort") return "Daily cleaning suction";
+    if (mode === "manual") return "Turbo suction";
+  }
+  return "Automation profile updated";
+}
+
 function getSnapshot() {
   return state;
 }
@@ -390,7 +433,7 @@ export function useSmartHome() {
   const energyDevice = snap.devices.find((d) => d.id === "energy-meter");
 
   const onlineDevices = snap.devices.filter((d) => d.status !== "offline").length;
-  const activeDevices = snap.devices.filter((d) => d.power || d.status === "active").length;
+  const activeDevices = snap.devices.filter((d) => d.power || d.status === "active" || d.status === "cleaning" || d.status === "spot").length;
 
   const enabledRooms = rooms.filter((r) => snap.roomLighting[r.key].on);
   const avgBrightness =
