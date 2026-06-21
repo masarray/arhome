@@ -13,7 +13,6 @@
   height: 192px;
   margin: -18px;
   overflow: visible;
-  contain: paint;
 }
 
 .circ-gauge__progress,
