@@ -98,14 +98,14 @@ export function CleaningPanel({ device, onCommand, onModeChange, onBatteryChange
     return () => window.clearInterval(timer);
   }, []);
 
-  if (!device) return null;
-
-  const currentMode = (device.mode ?? "eco") as DeviceMode;
-  const cleaning = device.power && (device.status === "cleaning" || device.status === "active" || device.status === "spot");
-  const status = statusLabel[device.status] ?? (device.power ? "Cleaning" : "Docked");
+  const currentMode = (device?.mode ?? "eco") as DeviceMode;
+  const deviceStatus = device?.status ?? "standby";
+  const devicePower = Boolean(device?.power);
+  const cleaning = devicePower && (deviceStatus === "cleaning" || deviceStatus === "active" || deviceStatus === "spot");
+  const status = statusLabel[deviceStatus] ?? (devicePower ? "Cleaning" : "Docked");
   const primaryCommand: VacuumCommand = cleaning ? "pause" : "start";
-  const batteryBase = clamp(Number(device.value ?? 64), 8, 100);
-  const signature = `${device.status}-${currentMode}-${Math.round(batteryBase)}`;
+  const batteryBase = clamp(Number(device?.value ?? 64), 8, 100);
+  const signature = `${deviceStatus}-${currentMode}-${Math.round(batteryBase)}`;
 
   if (batterySession.current.signature !== signature) {
     batterySession.current = { signature, startedAt: now, base: batteryBase };
@@ -114,25 +114,27 @@ export function CleaningPanel({ device, onCommand, onModeChange, onBatteryChange
   const elapsedMinutes = Math.max(0, (now - batterySession.current.startedAt) / 60000);
   const microPulse = Math.sin(now / 4200) * 0.22;
   const liveBattery = clamp(
-    batterySession.current.base + batteryDeltaPerMinute(device.status, currentMode) * elapsedMinutes + microPulse,
+    batterySession.current.base + batteryDeltaPerMinute(deviceStatus, currentMode) * elapsedMinutes + microPulse,
     5,
     100,
   );
   const battery = Math.round(liveBattery);
-  const charging = device.status === "docked" || device.status === "standby";
+  const charging = deviceStatus === "docked" || deviceStatus === "standby";
   const nextRun = cleaning
     ? "Room scan active"
-    : device.status === "returning"
+    : deviceStatus === "returning"
       ? "Docking path locked"
       : "09:00 AM · Next cleaning";
 
   useEffect(() => {
-    if (!onBatteryChange) return;
+    if (!device || !onBatteryChange) return;
     const current = lastSyncedBattery.current ?? Math.round(batteryBase);
     if (Math.abs(current - battery) < 1) return;
     lastSyncedBattery.current = battery;
     onBatteryChange(device.id, battery);
-  }, [battery, batteryBase, device.id, onBatteryChange]);
+  }, [battery, batteryBase, device, onBatteryChange]);
+
+  if (!device) return null;
 
   return (
     <section className="panel panel--cleaning compact-panel smart-device-card">
@@ -148,7 +150,7 @@ export function CleaningPanel({ device, onCommand, onModeChange, onBatteryChange
         <div className="vacuum-robot-stage">
           <img alt="" aria-hidden src={vacuum} />
           <span className="vacuum-substatus vacuum-substatus--stage">
-            {batteryStateLabel(device.status)} · {nextRun}
+            {batteryStateLabel(deviceStatus)} · {nextRun}
           </span>
         </div>
 
