@@ -87,6 +87,7 @@ export function LightingPanel({
   const lightingOn = activeLighting.on;
   const schedule = schedules[activeRoom.key] ?? defaultSchedule[activeRoom.key];
   const schedulePreview = useMemo(() => shouldLightBeOn(schedule), [schedule]);
+  const scheduleStateLabel = schedule.enabled ? (schedulePreview ? "Auto active, next off" : "Auto active, next on") : "Manual lighting schedule";
 
   useEffect(() => saveSchedules(schedules), [schedules]);
 
@@ -201,20 +202,16 @@ export function LightingPanel({
         </div>
 
         <aside className="lighting-scheduler" aria-label={`${activeRoom.label} lighting schedule`}>
-          <div className="lighting-scheduler__topline">
-            <span className="lighting-scheduler__icon"><Clock3 size={13} /></span>
-            <div>
-              <strong>Auto</strong>
-              <small>{schedule.enabled ? (schedulePreview ? "Next OFF" : "Next ON") : "Manual"}</small>
-            </div>
+          <div className="lighting-scheduler__topline lighting-scheduler__topline--icon-only">
             <button
+              aria-label={scheduleStateLabel}
               aria-pressed={schedule.enabled}
-              className={`lighting-scheduler__toggle ${schedule.enabled ? "is-on" : ""}`}
-              data-smart-tip="Enable auto ON/OFF for this room"
+              className={`lighting-scheduler__clock-toggle ${schedule.enabled ? "is-on" : ""}`}
+              data-smart-tip={schedule.enabled ? "Auto schedule is ON" : "Enable auto ON/OFF"}
               type="button"
               onClick={() => updateSchedule({ enabled: !schedule.enabled })}
             >
-              {schedule.enabled ? "ON" : "OFF"}
+              <Clock3 size={15} />
             </button>
           </div>
 
