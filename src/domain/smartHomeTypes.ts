@@ -61,6 +61,7 @@ export type SidebarItem = {
 export type SmartDeviceCategory =
   | "smart-bulb"
   | "smart-outlet"
+  | "energy-meter"
   | "wall-switch"
   | "ac-controller"
   | "robot-cleaner"
