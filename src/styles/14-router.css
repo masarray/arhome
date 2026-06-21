@@ -6,6 +6,7 @@
 @import "./20-smart-panel-polish.css";
 @import "./21-right-rail-stabilize.css";
 @import "./22-right-rail-control-alignment.css";
+@import "./23-right-rail-final-layout.css";
 
 /* OWNER: small router-related cosmetic overrides */
 .sidebar-item:focus-visible {
