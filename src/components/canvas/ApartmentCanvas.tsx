@@ -15,7 +15,7 @@ import {
   Wind,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import apartment from "@/assets/apartment-3d.jpg";
+import apartment from "@/assets/apartment-modern-base.webp";
 import person from "@/assets/person.jpg";
 import { IconButton } from "@/components/controls/IconButton";
 import { mapLocation, outletPins, rooms } from "@/domain/smartHomeData";
@@ -102,9 +102,15 @@ export function ApartmentCanvas({
   const showEnergyPins = activeLayer === "energy";
   const showClimatePin = activeLayer === "climate";
   const hasConfiguredClimate = configuredDevices.some((device) => device.layer === "climate");
-  const imageBrightness = 0.58 + avgBrightness * 0.62;
-  const imageSaturation = 0.78 + avgBrightness * 0.35;
-  const overlayOpacity = Math.max(0.08, 0.47 - avgBrightness * 0.34);
+  const imageBrightness = 0.72 + avgBrightness * 0.38;
+  const imageSaturation = 0.86 + avgBrightness * 0.22;
+  const overlayOpacity = Math.max(0.10, 0.42 - avgBrightness * 0.28);
+
+  const roomLightOpacity = (roomKey: RoomKey) => {
+    const lighting = roomLighting[roomKey];
+    if (!lighting.on || lighting.brightness <= 0) return 0;
+    return Math.min(0.50, 0.05 + Math.pow(lighting.brightness / 100, 1.45) * 0.38);
+  };
 
   const getConfiguredIcon = (category: ConfiguredSmartDevice["category"]) => {
     if (category === "smart-outlet") return PlugZap;
@@ -193,24 +199,117 @@ export function ApartmentCanvas({
       onPointerUp={stopDragging}
       onPointerLeave={stopDragging}
     >
-      <img
-        alt="3D apartment overview"
-        className="apartment-card__image"
-        src={apartment}
-        style={{ filter: `brightness(${imageBrightness}) saturate(${imageSaturation})` }}
-      />
-      <div className="apartment-card__dim" style={{ opacity: overlayOpacity }} />
+      <div className="apartment-card__scene">
+        <div className="apartment-card__viewport">
+          <img
+            alt="3D apartment overview"
+            className="apartment-card__image"
+            src={apartment}
+            style={{ filter: `brightness(${imageBrightness}) saturate(${imageSaturation})` }}
+          />
+          <div className="apartment-card__dim" style={{ opacity: overlayOpacity }} />
 
-      {rooms.map((room) => (
-        <div
-          className="apartment-card__warm-wash"
-          key={room.key}
-          style={{
-            background: room.warmWash,
-            opacity: roomLighting[room.key].on ? roomLighting[room.key].brightness / 100 : 0,
-          }}
-        />
-      ))}
+          {rooms.map((room) => (
+            <div
+              className={`apartment-card__warm-wash apartment-card__warm-wash--${room.key}`}
+              key={room.key}
+              style={{
+                background: room.warmWash,
+                opacity: roomLightOpacity(room.key),
+              }}
+            />
+          ))}
+
+          {showCamera ? (
+            <div className="live-camera-card">
+              <img alt="Live camera preview" src={person} />
+              <span className="live-camera-card__badge">Live</span>
+              <button aria-label="Camera audio" className="live-camera-card__audio" type="button">
+                <Volume2 size={15} />
+              </button>
+            </div>
+          ) : null}
+
+          <DevicePin
+            active={doorLocked}
+            className={`door-lock-pin ${doorLocked ? "is-locked" : "is-unlocked"}`}
+            dark={doorLocked}
+            layoutSelected={selectedTarget === "base:lock"}
+            icon={doorLocked ? Lock : Unlock}
+            label={doorLocked ? "Main door lock locked" : "Main door lock unlocked"}
+            x={lockPosition.x}
+            y={lockPosition.y}
+            onClick={() => handleDeviceAction("base:lock", onToggleDoorLock)}
+            onPointerDown={(event) => beginDrag("base:lock", event)}
+          />
+
+          {showClimatePin && !hasConfiguredClimate ? (
+            <DevicePin
+              dark={climateOn}
+              active={climateOn}
+              layoutSelected={selectedTarget === "base:climate"}
+              icon={Wind}
+              label="Climate airflow"
+              x={climatePosition.x}
+              y={climatePosition.y}
+              onClick={() => handleDeviceAction("base:climate", () => toggleLayer("climate"))}
+              onPointerDown={(event) => beginDrag("base:climate", event)}
+            />
+          ) : null}
+
+          {showEnergyPins
+            ? outletPins.map((pin) => (
+                <DevicePin
+                  active={outletStates[pin.key].on}
+                  dark={outletStates[pin.key].on}
+                  layoutSelected={selectedTarget === `outlet:${pin.key}`}
+                  icon={PlugZap}
+                  key={pin.key}
+                  label={`${pin.label} ${outletStates[pin.key].on ? "on" : "off"}`}
+                  x={outletPositions[pin.key].x}
+                  y={outletPositions[pin.key].y}
+                  onClick={() => handleDeviceAction(`outlet:${pin.key}`, () => onToggleOutlet(pin.key))}
+                  onPointerDown={(event) => beginDrag(`outlet:${pin.key}`, event)}
+                />
+              ))
+            : null}
+
+          {configuredDevices
+            .filter((device) => layerVisible(device.layer))
+            .map((device) => {
+              const Icon = getConfiguredIcon(device.category);
+              return (
+                <DevicePin
+                  active={device.power}
+                  dark={device.power}
+                  layoutSelected={selectedTarget === `configured:${device.id}`}
+                  icon={Icon}
+                  key={device.id}
+                  label={`${device.name} ${device.power ? "on" : "off"}`}
+                  x={device.x}
+                  y={device.y}
+                  onClick={() => handleDeviceAction(`configured:${device.id}`, () => onToggleConfiguredDevice(device.id))}
+                  onPointerDown={(event) => beginDrag(`configured:${device.id}`, event)}
+                />
+              );
+            })}
+
+          {showLightingPins
+            ? rooms.map((room) => (
+                <RoomLampPin
+                  active={room.key === activeRoomKey}
+                  key={room.key}
+                  lighting={roomLighting[room.key]}
+                  layoutSelected={selectedTarget === `room:${room.key}`}
+                  room={{ ...room, x: roomPositions[room.key].x, y: roomPositions[room.key].y }}
+                  onSelect={onSelectRoom}
+                  onToggle={onToggleRoom}
+                  onPointerDown={(event) => beginDrag(`room:${room.key}`, event)}
+                />
+              ))
+            : null}
+        </div>
+      </div>
 
       <div className="canvas-chip-row" aria-label="Canvas quick filters">
         <button
@@ -271,94 +370,6 @@ export function ApartmentCanvas({
         </div>
       ) : null}
 
-      {showCamera ? (
-        <div className="live-camera-card">
-          <img alt="Live camera preview" src={person} />
-          <span className="live-camera-card__badge">Live</span>
-          <button aria-label="Camera audio" className="live-camera-card__audio" type="button">
-            <Volume2 size={15} />
-          </button>
-        </div>
-      ) : null}
-
-      <DevicePin
-        active={doorLocked}
-        className={`door-lock-pin ${doorLocked ? "is-locked" : "is-unlocked"}`}
-        dark={doorLocked}
-        layoutSelected={selectedTarget === "base:lock"}
-        icon={doorLocked ? Lock : Unlock}
-        label={doorLocked ? "Main door lock locked" : "Main door lock unlocked"}
-        x={lockPosition.x}
-        y={lockPosition.y}
-        onClick={() => handleDeviceAction("base:lock", onToggleDoorLock)}
-        onPointerDown={(event) => beginDrag("base:lock", event)}
-      />
-
-      {showClimatePin && !hasConfiguredClimate ? (
-        <DevicePin
-          dark={climateOn}
-          active={climateOn}
-          layoutSelected={selectedTarget === "base:climate"}
-          icon={Wind}
-          label="Climate airflow"
-          x={climatePosition.x}
-          y={climatePosition.y}
-          onClick={() => handleDeviceAction("base:climate", () => toggleLayer("climate"))}
-          onPointerDown={(event) => beginDrag("base:climate", event)}
-        />
-      ) : null}
-
-      {showEnergyPins
-        ? outletPins.map((pin) => (
-            <DevicePin
-              active={outletStates[pin.key].on}
-              dark={outletStates[pin.key].on}
-              layoutSelected={selectedTarget === `outlet:${pin.key}`}
-              icon={PlugZap}
-              key={pin.key}
-              label={`${pin.label} ${outletStates[pin.key].on ? "on" : "off"}`}
-              x={outletPositions[pin.key].x}
-              y={outletPositions[pin.key].y}
-              onClick={() => handleDeviceAction(`outlet:${pin.key}`, () => onToggleOutlet(pin.key))}
-              onPointerDown={(event) => beginDrag(`outlet:${pin.key}`, event)}
-            />
-          ))
-        : null}
-
-      {configuredDevices
-        .filter((device) => layerVisible(device.layer))
-        .map((device) => {
-          const Icon = getConfiguredIcon(device.category);
-          return (
-            <DevicePin
-              active={device.power}
-              dark={device.power}
-              layoutSelected={selectedTarget === `configured:${device.id}`}
-              icon={Icon}
-              key={device.id}
-              label={`${device.name} ${device.power ? "on" : "off"}`}
-              x={device.x}
-              y={device.y}
-              onClick={() => handleDeviceAction(`configured:${device.id}`, () => onToggleConfiguredDevice(device.id))}
-              onPointerDown={(event) => beginDrag(`configured:${device.id}`, event)}
-            />
-          );
-        })}
-
-      {showLightingPins
-        ? rooms.map((room) => (
-            <RoomLampPin
-              active={room.key === activeRoomKey}
-              key={room.key}
-              lighting={roomLighting[room.key]}
-              layoutSelected={selectedTarget === `room:${room.key}`}
-              room={{ ...room, x: roomPositions[room.key].x, y: roomPositions[room.key].y }}
-              onSelect={onSelectRoom}
-              onToggle={onToggleRoom}
-              onPointerDown={(event) => beginDrag(`room:${room.key}`, event)}
-            />
-          ))
-        : null}
     </section>
   );
 }

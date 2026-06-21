@@ -1,0 +1,148 @@
+/*
+ * Final modern apartment asset + access engine overlays.
+ * Keeps the base render premium while lighting, smart door, and doorbell remain state-driven.
+ */
+.apartment-card {
+  background: linear-gradient(145deg, #c9c2df, #eeeaf7);
+}
+
+.apartment-card__image {
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.01);
+}
+
+.apartment-card__dim {
+  background:
+    radial-gradient(circle at 52% 44%, rgba(255, 255, 255, 0.09), transparent 44%),
+    linear-gradient(135deg, rgba(36, 30, 55, 0.42), rgba(42, 35, 62, 0.20));
+}
+
+.apartment-card__warm-wash {
+  filter: blur(2px) saturate(1.1);
+  mix-blend-mode: screen;
+}
+
+.lamp-pin.is-on {
+  color: #6f5410;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.88), transparent 34%),
+    linear-gradient(145deg, #ffe589, #f7ca55);
+  box-shadow:
+    0 14px 26px rgba(205, 147, 35, 0.20),
+    0 0 0 8px rgba(255, 213, 105, 0.12);
+}
+
+.lamp-pin:not(.is-on) {
+  color: rgba(111, 96, 135, 0.86);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 20px rgba(31, 27, 42, 0.10);
+}
+
+.smart-door-pin,
+.doorbell-pin {
+  width: 40px;
+  height: 40px;
+  border-radius: 15px;
+}
+
+.smart-door-pin.is-open {
+  color: #fff;
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.32), transparent 36%),
+    linear-gradient(145deg, #f7b955, #c88120);
+  box-shadow:
+    0 18px 30px rgba(196, 126, 32, 0.26),
+    0 0 0 8px rgba(247, 185, 85, 0.13);
+}
+
+.smart-door-pin.is-closed {
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.90);
+}
+
+.doorbell-pin.is-enabled:not(.is-ringing) {
+  color: #fff;
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.30), transparent 36%),
+    linear-gradient(145deg, var(--accent-2), #4e35b1);
+  box-shadow: 0 16px 28px rgba(92, 67, 184, 0.26);
+}
+
+.doorbell-pin.is-muted {
+  color: rgba(111, 96, 135, 0.74);
+  background: rgba(255, 255, 255, 0.80);
+}
+
+.doorbell-pin.is-ringing {
+  color: #fff;
+  background: linear-gradient(145deg, #23c586, #15a46f);
+  animation: doorbellPulse 900ms ease-in-out infinite;
+}
+
+@keyframes doorbellPulse {
+  0%, 100% { box-shadow: 0 12px 24px rgba(35, 197, 134, 0.24), 0 0 0 0 rgba(35, 197, 134, 0.20); }
+  50% { box-shadow: 0 18px 30px rgba(35, 197, 134, 0.30), 0 0 0 13px rgba(35, 197, 134, 0); }
+}
+
+.bottom-status {
+  grid-template-columns: 0.92fr 0.98fr 1.02fr 1.18fr 1.20fr 0.82fr;
+  gap: 8px;
+}
+
+.bottom-status__item--lock,
+.bottom-status__ring {
+  border-radius: 18px;
+  border: 1px solid transparent;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.bottom-status__item--lock:hover,
+.bottom-status__item--lock:focus-visible {
+  background: rgba(255, 255, 255, 0.58);
+  border-color: rgba(112, 83, 214, 0.22);
+  box-shadow: 0 12px 22px rgba(92, 67, 184, 0.12);
+  transform: translateY(-1px);
+}
+
+.bottom-status__item--doorbell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bottom-status__ring {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: var(--panel-soft);
+  cursor: pointer;
+}
+
+.bottom-status__ring:hover,
+.bottom-status__ring:focus-visible {
+  color: var(--accent-2);
+  background: rgba(255, 255, 255, 0.90);
+  border-color: rgba(112, 83, 214, 0.26);
+  box-shadow: 0 12px 22px rgba(92, 67, 184, 0.14);
+  transform: translateY(-1px);
+}
+
+.bottom-status__ring.is-ringing {
+  color: #fff;
+  background: linear-gradient(145deg, #23c586, #15a46f);
+  animation: doorbellPulse 900ms ease-in-out infinite;
+}
+
+@media (max-width: 1200px) {
+  .bottom-status {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    height: auto;
+    min-height: var(--bottom-height);
+  }
+}

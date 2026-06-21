@@ -46,21 +46,21 @@ type StoreState = {
   eventLog: AutomationEvent[];
 };
 
-const KEY = "mas.home.v2";
+const KEY = "mas.home.v3";
 const MAX_EVENTS = 14;
 
 const initialRoomPositions: Record<RoomKey, Position> = {
-  bedroom: { x: rooms.find((r) => r.key === "bedroom")?.x ?? "32%", y: rooms.find((r) => r.key === "bedroom")?.y ?? "43%" },
-  living: { x: rooms.find((r) => r.key === "living")?.x ?? "53%", y: rooms.find((r) => r.key === "living")?.y ?? "61%" },
-  kitchen: { x: rooms.find((r) => r.key === "kitchen")?.x ?? "53%", y: rooms.find((r) => r.key === "kitchen")?.y ?? "28%" },
-  dining: { x: rooms.find((r) => r.key === "dining")?.x ?? "74%", y: rooms.find((r) => r.key === "dining")?.y ?? "44%" },
+  bedroom: { x: rooms.find((r) => r.key === "bedroom")?.x ?? "31.5%", y: rooms.find((r) => r.key === "bedroom")?.y ?? "43.5%" },
+  living: { x: rooms.find((r) => r.key === "living")?.x ?? "53.0%", y: rooms.find((r) => r.key === "living")?.y ?? "60.5%" },
+  kitchen: { x: rooms.find((r) => r.key === "kitchen")?.x ?? "56.0%", y: rooms.find((r) => r.key === "kitchen")?.y ?? "28.5%" },
+  dining: { x: rooms.find((r) => r.key === "dining")?.x ?? "79.0%", y: rooms.find((r) => r.key === "dining")?.y ?? "44.5%" },
 };
 
 const initialOutletPositions: Record<OutletKey, Position> = {
-  "living-tv": { x: outletPins.find((p) => p.key === "living-tv")?.x ?? "46%", y: outletPins.find((p) => p.key === "living-tv")?.y ?? "63%" },
-  "kitchen-counter": { x: outletPins.find((p) => p.key === "kitchen-counter")?.x ?? "51.5%", y: outletPins.find((p) => p.key === "kitchen-counter")?.y ?? "36%" },
-  "dining-wall": { x: outletPins.find((p) => p.key === "dining-wall")?.x ?? "74%", y: outletPins.find((p) => p.key === "dining-wall")?.y ?? "48%" },
-  "bedroom-desk": { x: outletPins.find((p) => p.key === "bedroom-desk")?.x ?? "30%", y: outletPins.find((p) => p.key === "bedroom-desk")?.y ?? "38%" },
+  "living-tv": { x: outletPins.find((p) => p.key === "living-tv")?.x ?? "66.5%", y: outletPins.find((p) => p.key === "living-tv")?.y ?? "74.5%" },
+  "kitchen-counter": { x: outletPins.find((p) => p.key === "kitchen-counter")?.x ?? "56.5%", y: outletPins.find((p) => p.key === "kitchen-counter")?.y ?? "28.8%" },
+  "dining-wall": { x: outletPins.find((p) => p.key === "dining-wall")?.x ?? "83.0%", y: outletPins.find((p) => p.key === "dining-wall")?.y ?? "46.0%" },
+  "bedroom-desk": { x: outletPins.find((p) => p.key === "bedroom-desk")?.x ?? "17.5%", y: outletPins.find((p) => p.key === "bedroom-desk")?.y ?? "57.5%" },
 };
 
 function makeEvent(input: EventInput): AutomationEvent {
@@ -81,8 +81,8 @@ function defaultState(): StoreState {
     outletStates: initialOutletStates,
     roomPositions: initialRoomPositions,
     outletPositions: initialOutletPositions,
-    lockPosition: { x: "12.8%", y: "79.2%" },
-    climatePosition: { x: "50.8%", y: "56.5%" },
+    lockPosition: { x: "76.8%", y: "29.5%" },
+    climatePosition: { x: "56.0%", y: "52.0%" },
     activeRoomIndex: 0,
     eventLog: [
       {

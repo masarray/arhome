@@ -22,45 +22,45 @@ export const rooms: Room[] = [
     key: "bedroom",
     label: "Bedroom",
     shortLabel: "Bed",
-    x: "32%",
-    y: "43%",
+    x: "31.5%",
+    y: "43.5%",
     warmWash:
-      "radial-gradient(ellipse at 27% 42%, rgba(255, 205, 105, 0.88) 0%, rgba(255, 205, 105, 0.34) 20%, transparent 40%)",
+      "radial-gradient(ellipse at 24% 38%, rgba(255, 206, 118, 0.82) 0%, rgba(255, 206, 118, 0.24) 20%, transparent 40%)",
   },
   {
     key: "living",
     label: "Living room",
     shortLabel: "Living",
-    x: "53%",
-    y: "61%",
+    x: "53.0%",
+    y: "60.5%",
     warmWash:
-      "radial-gradient(ellipse at 58% 69%, rgba(255, 205, 105, 0.88) 0%, rgba(255, 205, 105, 0.30) 24%, transparent 48%)",
+      "radial-gradient(ellipse at 52% 70%, rgba(255, 206, 118, 0.86) 0%, rgba(255, 206, 118, 0.26) 23%, transparent 46%)",
   },
   {
     key: "kitchen",
     label: "Kitchen",
     shortLabel: "Kitchen",
-    x: "53%",
-    y: "28%",
+    x: "56.0%",
+    y: "28.5%",
     warmWash:
-      "radial-gradient(ellipse at 58% 34%, rgba(255, 205, 105, 0.80) 0%, rgba(255, 205, 105, 0.28) 18%, transparent 38%)",
+      "radial-gradient(ellipse at 58% 23%, rgba(255, 214, 146, 0.82) 0%, rgba(255, 214, 146, 0.22) 17%, transparent 35%)",
   },
   {
     key: "dining",
     label: "Dining room",
     shortLabel: "Dining",
-    x: "74%",
-    y: "44%",
+    x: "79.0%",
+    y: "44.5%",
     warmWash:
-      "radial-gradient(ellipse at 80% 55%, rgba(255, 205, 105, 0.78) 0%, rgba(255, 205, 105, 0.28) 18%, transparent 36%)",
+      "radial-gradient(ellipse at 82% 45%, rgba(255, 214, 146, 0.76) 0%, rgba(255, 214, 146, 0.22) 17%, transparent 34%)",
   },
 ];
 
 export const outletPins: Array<{ key: OutletKey; label: string; x: string; y: string }> = [
-  { key: "living-tv", label: "Living room outlet", x: "46%", y: "63%" },
-  { key: "kitchen-counter", label: "Kitchen counter outlet", x: "51.5%", y: "36%" },
-  { key: "dining-wall", label: "Dining area outlet", x: "74%", y: "48%" },
-  { key: "bedroom-desk", label: "Bedroom desk outlet", x: "30%", y: "38%" },
+  { key: "living-tv", label: "Living room outlet", x: "66.5%", y: "74.5%" },
+  { key: "kitchen-counter", label: "Kitchen counter outlet", x: "56.5%", y: "28.8%" },
+  { key: "dining-wall", label: "Dining area outlet", x: "83.0%", y: "46.0%" },
+  { key: "bedroom-desk", label: "Bedroom desk outlet", x: "17.5%", y: "57.5%" },
 ];
 
 export const initialOutletStates: Record<OutletKey, { on: boolean }> = {
