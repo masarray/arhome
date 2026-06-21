@@ -17,7 +17,7 @@ function layerToCanvasLayer(layer: ControlLayerKey): ControlLayer {
 
 export function SmartHomePage() {
   const smartHome = useSmartHome();
-  const [showCamera, setShowCamera] = useState(true);
+  const [showCamera, setShowCamera] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<ControlLayer | null>("lighting");
   const [layoutEditMode, setLayoutEditMode] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -97,11 +97,13 @@ export function SmartHomePage() {
           <LightingPanel
             activeLighting={smartHome.activeLighting}
             activeRoom={smartHome.activeRoom}
+            roomLighting={smartHome.roomLighting}
             onBrightnessChange={(brightness) =>
               smartHome.setActiveRoomLighting({ brightness, on: true })
             }
             onCycleRoom={smartHome.cycleRoom}
             onPowerChange={(checked) => smartHome.setActiveRoomLighting({ on: checked })}
+            onRoomPowerChange={smartHome.setRoomPower}
             onSelectRoom={smartHome.selectRoom}
           />
           <ClimatePanel
