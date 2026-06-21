@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { DeviceMode } from "@/domain/smartHomeTypes";
 
 type CircularGaugeProps = {
@@ -15,9 +15,11 @@ type CircularGaugeProps = {
 
 const ARC_RANGE = 260; // degrees swept
 const ARC_START = -130; // start angle (deg from 12 o'clock)
-const SIZE = 156;
+const TRACK_SIZE = 156;
+const SVG_PADDING = 18;
+const SIZE = TRACK_SIZE + SVG_PADDING * 2;
 const STROKE = 12;
-const RADIUS = (SIZE - STROKE) / 2;
+const RADIUS = (TRACK_SIZE - STROKE) / 2;
 const CENTER = SIZE / 2;
 
 // polar -> svg cartesian
@@ -27,9 +29,10 @@ function polar(cx: number, cy: number, r: number, angleDeg: number) {
 }
 
 function describeArc(start: number, end: number) {
+  const safeEnd = Math.max(start + 0.01, end);
   const p1 = polar(CENTER, CENTER, RADIUS, start);
-  const p2 = polar(CENTER, CENTER, RADIUS, end);
-  const large = end - start > 180 ? 1 : 0;
+  const p2 = polar(CENTER, CENTER, RADIUS, safeEnd);
+  const large = safeEnd - start > 180 ? 1 : 0;
   return `M ${p1.x} ${p1.y} A ${RADIUS} ${RADIUS} 0 ${large} 1 ${p2.x} ${p2.y}`;
 }
 
@@ -55,10 +58,21 @@ export function CircularGauge({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const draggingRef = useRef(false);
   const valueRef = useRef(value);
-  valueRef.current = value;
+  const [draftValue, setDraftValue] = useState(value);
+  const [dragging, setDragging] = useState(false);
+  const idBase = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const gradId = `cg-grad-${idBase}`;
+  const glowId = `cg-glow-${idBase}`;
 
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
-  const ratio = (clamp(value) - min) / (max - min);
+  const displayValue = clamp(draggingRef.current ? draftValue : value);
+  valueRef.current = displayValue;
+
+  useEffect(() => {
+    if (!draggingRef.current) setDraftValue(value);
+  }, [value]);
+
+  const ratio = (displayValue - min) / (max - min);
   const tone = MODE_TONE[mode] ?? MODE_TONE.cool;
   const arcEnd = ARC_START + ratio * ARC_RANGE;
   const knob = polar(CENTER, CENTER, RADIUS, arcEnd);
@@ -73,7 +87,6 @@ export function CircularGauge({
     let deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90; // shift so 0deg = top
     if (deg > 180) deg -= 360;
     if (deg < -180) deg += 360;
-    // snap to ARC range
     let local = deg - ARC_START;
     if (local < 0) local = 0;
     if (local > ARC_RANGE) local = ARC_RANGE;
@@ -84,11 +97,14 @@ export function CircularGauge({
     const raw = min + (local / ARC_RANGE) * (max - min);
     const snapped = Math.round(raw / step) * step;
     const next = clamp(Number(snapped.toFixed(2)));
+    setDraftValue(next);
     if (next !== valueRef.current) onChange(next);
+    valueRef.current = next;
   };
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     draggingRef.current = true;
+    setDragging(true);
     svgRef.current?.setPointerCapture(e.pointerId);
     const local = angleFromEvent(e);
     if (local != null) commit(local);
@@ -102,6 +118,7 @@ export function CircularGauge({
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     draggingRef.current = false;
+    setDragging(false);
     try {
       svgRef.current?.releasePointerCapture(e.pointerId);
     } catch {
@@ -109,7 +126,6 @@ export function CircularGauge({
     }
   };
 
-  // Keyboard support
   useEffect(() => {
     const node = svgRef.current;
     if (!node) return;
@@ -128,7 +144,7 @@ export function CircularGauge({
   }, [value, step, min, max, onChange]);
 
   return (
-    <div className={`circ-gauge ${on ? "is-on" : "is-off"}`} data-mode={mode}>
+    <div className={`circ-gauge ${on ? "is-on" : "is-off"} ${dragging ? "is-dragging" : ""}`} data-mode={mode}>
       <svg
         ref={svgRef}
         width={SIZE}
@@ -140,18 +156,18 @@ export function CircularGauge({
         aria-label={label}
         aria-valuemin={min}
         aria-valuemax={max}
-        aria-valuenow={value}
+        aria-valuenow={displayValue}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
         <defs>
-          <linearGradient id="cg-grad" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={tone.ring} stopOpacity="0.95" />
             <stop offset="100%" stopColor={tone.ring} stopOpacity="0.55" />
           </linearGradient>
-          <filter id="cg-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <filter id={glowId} x="-80%" y="-80%" width="260%" height="260%" filterUnits="objectBoundingBox">
             <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -160,7 +176,6 @@ export function CircularGauge({
           </filter>
         </defs>
 
-        {/* Track */}
         <path
           d={describeArc(ARC_START, ARC_START + ARC_RANGE)}
           stroke="rgba(60,46,110,0.10)"
@@ -168,7 +183,6 @@ export function CircularGauge({
           strokeLinecap="round"
           fill="none"
         />
-        {/* Tick marks */}
         {Array.from({ length: 27 }).map((_, i) => {
           const a = ARC_START + (i / 26) * ARC_RANGE;
           const inner = polar(CENTER, CENTER, RADIUS - STROKE / 2 - 4, a);
@@ -185,25 +199,23 @@ export function CircularGauge({
             />
           );
         })}
-        {/* Progress arc */}
         <path
+          className="circ-gauge__progress"
           d={describeArc(ARC_START, arcEnd)}
-          stroke="url(#cg-grad)"
+          stroke={`url(#${gradId})`}
           strokeWidth={STROKE}
           strokeLinecap="round"
           fill="none"
-          filter={on ? "url(#cg-glow)" : undefined}
-          style={{ transition: "all 240ms cubic-bezier(0.2,0.8,0.2,1)" }}
+          filter={on ? `url(#${glowId})` : undefined}
         />
-        {/* Knob */}
-        <g style={{ transition: "transform 240ms cubic-bezier(0.2,0.8,0.2,1)" }}>
+        <g className="circ-gauge__knob">
           <circle cx={knob.x} cy={knob.y} r={12} fill="#fff" stroke={tone.ring} strokeWidth={3} />
           <circle cx={knob.x} cy={knob.y} r={4} fill={tone.ring} />
         </g>
       </svg>
       <div className="circ-gauge__center" aria-hidden>
         <span className="circ-gauge__value">
-          {Number.isInteger(value) ? value : value.toFixed(1)}
+          {Number.isInteger(displayValue) ? displayValue : displayValue.toFixed(1)}
           <em>{unit}</em>
         </span>
         <span className="circ-gauge__label">{tone.label} · {on ? "Running" : "Standby"}</span>
