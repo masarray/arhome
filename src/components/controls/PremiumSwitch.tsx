@@ -10,6 +10,7 @@ export function PremiumSwitch({ checked, onChange, label }: PremiumSwitchProps) 
       aria-label={label}
       aria-checked={checked}
       className={`premium-switch ${checked ? "is-on" : ""}`}
+      data-smart-tip={label}
       role="switch"
       type="button"
       onClick={() => onChange(!checked)}
