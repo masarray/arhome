@@ -25,8 +25,8 @@ export function LightingPanel({
   const lightingOn = activeLighting.on;
 
   return (
-    <section className="panel panel--lighting">
-      <div className="panel__header">
+    <section className="panel panel--lighting smart-device-card">
+      <div className="panel__header smart-card-header">
         <div>
           <h2>Lighting</h2>
           <p>{activeRoom.label}</p>
@@ -35,7 +35,13 @@ export function LightingPanel({
       </div>
 
       <div className="lighting-visual">
-        <button aria-label="Previous room" className="plain-icon" type="button" onClick={() => onCycleRoom(-1)}>
+        <button
+          aria-label="Previous room"
+          className="plain-icon smart-nav-icon"
+          data-smart-tip="Previous room"
+          type="button"
+          onClick={() => onCycleRoom(-1)}
+        >
           <ChevronLeft size={21} />
         </button>
         <div className="lamp-stage">
@@ -53,7 +59,13 @@ export function LightingPanel({
             }}
           />
         </div>
-        <button aria-label="Next room" className="plain-icon" type="button" onClick={() => onCycleRoom(1)}>
+        <button
+          aria-label="Next room"
+          className="plain-icon smart-nav-icon"
+          data-smart-tip="Next room"
+          type="button"
+          onClick={() => onCycleRoom(1)}
+        >
           <ChevronRight size={21} />
         </button>
       </div>
@@ -63,6 +75,7 @@ export function LightingPanel({
           <button
             aria-label={`Select ${room.label}`}
             className={room.key === activeRoom.key ? "is-active" : ""}
+            data-smart-tip={room.label}
             key={room.key}
             type="button"
             onClick={() => onSelectRoom(room.key)}
