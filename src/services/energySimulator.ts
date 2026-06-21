@@ -99,34 +99,62 @@ function bell(hour: number, target: number, width: number) {
   return Math.exp(-(distance * distance) / (2 * width * width));
 }
 
-function historyUsageFactor(ts: number, id: string, baseWeight: number) {
+function dailyProfiles(ts: number) {
   const d = new Date(ts);
   const hourFloat = d.getHours() + d.getMinutes() / 60;
   const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-  const night = Math.max(bell(hourFloat, 0.5, 3.2), bell(hourFloat, 23, 2.2));
-  const evening = bell(hourFloat, 20.2, 2.4);
-  const midday = bell(hourFloat, 13, 1.2);
-  const breakfast = bell(hourFloat, 7.1, 0.42);
-  const lunch = bell(hourFloat, 12.3, 0.48);
-  const dinner = bell(hourFloat, 19.1, 0.62);
-  const daylight = bell(hourFloat, 13, 4.6);
+  const morning = bell(hourFloat, 6.7, 0.8);
+  const breakfast = bell(hourFloat, 6.9, 0.55);
+  const lunch = bell(hourFloat, 12.2, isWeekend ? 0.9 : 0.48);
+  const dinner = bell(hourFloat, 19.0, 0.78);
+  const evening = bell(hourFloat, 20.2, 2.45);
+  const night = Math.max(bell(hourFloat, 0.4, 3.15), bell(hourFloat, 23.0, 2.15));
+  const afternoonWeekend = isWeekend ? bell(hourFloat, 14.7, 2.25) : 0;
+  const away = isWeekend ? 0.22 : bell(hourFloat, 12.4, 3.2);
+  const daylight = bell(hourFloat, 13, 4.8);
+  const occupied = isWeekend ? 0.88 : clamp(1 - away * 0.62 + morning * 0.18 + evening * 0.32, 0.34, 1.0);
+  return { d, hourFloat, isWeekend, morning, breakfast, lunch, dinner, evening, night, afternoonWeekend, away, daylight, occupied };
+}
 
+function historyUsageFactor(ts: number, id: string, baseWeight: number) {
+  const { d, hourFloat, isWeekend, morning, breakfast, lunch, dinner, evening, night, afternoonWeekend, daylight, occupied } = dailyProfiles(ts);
   let factor = baseWeight;
-  if (id.startsWith("ac")) factor *= 0.18 + night * 0.58 + evening * 0.38 + midday * 0.28;
-  if (id === "lighting") factor *= Math.max(0.1, 0.35 + evening * 0.85 + night * 0.55 - daylight * 0.24);
-  if (id === "tv-living") factor *= 0.12 + evening * 0.95 + (isWeekend ? bell(hourFloat, 14, 1.8) * 0.46 : 0);
-  if (id === "kitchen") factor *= 0.04 + Math.max(breakfast * 0.82, lunch * 0.68, dinner);
-  if (id === "wm-dryer") factor *= d.getDay() % 3 === 0 ? bell(hourFloat, 8.6, 0.72) : 0;
+
+  if (id === "ac-bedroom") {
+    factor *= 0.03 + night * 0.62 + evening * 0.18 + (isWeekend ? afternoonWeekend * 0.08 : 0);
+  } else if (id === "ac-living") {
+    factor *= 0.02 + evening * 0.42 + afternoonWeekend * 0.48 + (isWeekend ? lunch * 0.16 : 0.05 * occupied);
+  } else if (id === "fridge") {
+    factor *= 0.42 + 0.08 * Math.max(0, Math.sin(hourFloat / 3.4)) + (isWeekend ? 0.04 : 0);
+  } else if (id === "lighting") {
+    factor *= Math.max(0.04, (0.22 + morning * 0.26 + evening * 0.78 + night * 0.34 - daylight * 0.18) * occupied);
+  } else if (id === "tv-living") {
+    factor *= 0.03 + evening * 0.78 + afternoonWeekend * 0.48;
+  } else if (id === "kitchen") {
+    factor *= 0.02 + breakfast * 0.48 + lunch * (isWeekend ? 0.58 : 0.28) + dinner * 0.92;
+  } else if (id === "wm-dryer") {
+    const laundryDay = isWeekend || d.getDay() === 3;
+    factor *= laundryDay ? bell(hourFloat, isWeekend ? 10.4 : 8.6, 0.82) : 0;
+  } else if (id === "humidifier") {
+    factor *= 0.05 + evening * 0.28 + night * 0.38;
+  } else if (id === "vacuum") {
+    factor *= bell(hourFloat, isWeekend ? 11.0 : 9.4, 0.55) * (isWeekend ? 0.8 : 0.42);
+  } else if (id === "outlets") {
+    factor *= 0.12 + evening * 0.35 + afternoonWeekend * 0.22;
+  } else if (id === "camera" || id === "doorbell" || id === "door-lock" || id === "energy-meter" || id === "router-iot") {
+    factor *= 1;
+  }
+
   return Math.max(0, factor);
 }
 
 function standbyWatts(device: DeviceLoad, ts: number) {
   const seed = hashId(device.id);
   const base =
-    device.category === "security" ? 0.7 :
-      device.category === "iot" ? 0.8 :
-        device.category === "climate" ? 2.8 : 1.2;
-  return base + smoothUnit(ts, seed, 17) * 0.8;
+    device.category === "security" ? 0.55 :
+      device.category === "iot" ? 0.75 :
+        device.category === "climate" ? 2.2 : 1.0;
+  return base + smoothUnit(ts, seed, 17) * 0.65;
 }
 
 function measuredDeviceWatts(device: DeviceLoad, ts: number) {
@@ -223,18 +251,24 @@ class EnergySimulator {
   }
 
   private backfill() {
-    // Generate 30 days of deterministic, apartment-like hourly history.
     const now = Date.now();
     const startHour = hourBucketStart(now) - 24 * 30 * 3600_000;
     const baseDevices = [
-      { id: "ac-bedroom", watts: 950, weight: 0.65 },
-      { id: "ac-living", watts: 1100, weight: 0.55 },
+      { id: "ac-bedroom", watts: 850, weight: 1.0 },
+      { id: "ac-living", watts: 980, weight: 1.0 },
       { id: "fridge", watts: 110, weight: 1.0 },
-      { id: "lighting", watts: 80, weight: 0.5 },
-      { id: "tv-living", watts: 120, weight: 0.35 },
-      { id: "kitchen", watts: 600, weight: 0.18 },
-      { id: "wm-dryer", watts: 1400, weight: 0.04 },
-      { id: "router-iot", watts: 22, weight: 1.0 },
+      { id: "lighting", watts: 78, weight: 1.0 },
+      { id: "tv-living", watts: 118, weight: 1.0 },
+      { id: "kitchen", watts: 920, weight: 1.0 },
+      { id: "wm-dryer", watts: 1280, weight: 0.78 },
+      { id: "router-iot", watts: 21, weight: 1.0 },
+      { id: "humidifier", watts: 34, weight: 0.7 },
+      { id: "vacuum", watts: 32, weight: 0.75 },
+      { id: "outlets", watts: 135, weight: 0.85 },
+      { id: "camera", watts: 1.1, weight: 1.0 },
+      { id: "doorbell", watts: 0.8, weight: 1.0 },
+      { id: "door-lock", watts: 0.7, weight: 1.0 },
+      { id: "energy-meter", watts: 1.8, weight: 1.0 },
     ];
     for (let i = 0; i < 24 * 30; i += 1) {
       const ts = startHour + i * 3600_000;
@@ -244,7 +278,7 @@ class EnergySimulator {
         const seed = hashId(dev.id);
         const factor = historyUsageFactor(ts, dev.id, dev.weight);
         const jitter = seededHourJitter(ts, seed);
-        const energy = (dev.watts * factor * jitter) / 1000; // kWh in 1 hour
+        const energy = (dev.watts * factor * jitter) / 1000;
         perDevice[dev.id] = energy;
         kwh += energy;
       }
@@ -317,9 +351,9 @@ class EnergySimulator {
     }
     const mk = monthKey(now);
     const mpd = (this.state.monthlyPerDevice[mk] ??= {});
-    const dt = elapsedMs / 3_600_000; // hours
+    const dt = elapsedMs / 3_600_000;
     for (const d of devices) {
-      const energy = (d.watts / 1000) * dt; // kWh
+      const energy = (d.watts / 1000) * dt;
       bucket.perDevice[d.id] = (bucket.perDevice[d.id] ?? 0) + energy;
       bucket.kwh += energy;
       mpd[d.id] = (mpd[d.id] ?? 0) + energy;
@@ -369,7 +403,6 @@ class EnergySimulator {
     for (const fn of this.listeners) fn(snap);
   }
 
-  // Helpers
   resetAll() {
     this.state = emptyState();
     this.backfill();
@@ -403,6 +436,5 @@ export type Snapshot = {
 export const energySim = new EnergySimulator();
 
 if (typeof window !== "undefined") {
-  // Auto-start once mounted in browser.
   energySim.start();
 }
