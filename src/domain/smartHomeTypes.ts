@@ -3,7 +3,18 @@ import type { LucideIcon } from "lucide-react";
 export type RoomKey = "bedroom" | "living" | "kitchen" | "dining";
 export type OutletKey = "living-tv" | "kitchen-counter" | "dining-wall" | "bedroom-desk";
 export type DeviceType = "light" | "climate" | "lock" | "camera" | "vacuum" | "humidifier" | "doorbell" | "energy";
-export type DeviceStatus = "online" | "offline" | "active" | "standby" | "locked" | "muted";
+export type DeviceStatus =
+  | "online"
+  | "offline"
+  | "active"
+  | "standby"
+  | "locked"
+  | "muted"
+  | "cleaning"
+  | "paused"
+  | "returning"
+  | "docked"
+  | "spot";
 export type DeviceMode = "eco" | "comfort" | "away" | "night" | "manual" | "cool" | "dry" | "fan" | "auto";
 
 export type Room = {
@@ -89,5 +100,7 @@ export type AutomationEvent = {
   detail?: string;
   tone: AutomationEventTone;
 };
+
+export type VacuumCommand = "start" | "pause" | "dock" | "spot" | "locate";
 
 export type ControlLayerKey = "lighting" | "energy" | "climate" | "cleaning" | "security" | "camera";
