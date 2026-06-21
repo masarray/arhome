@@ -26,6 +26,12 @@ export function SmartHomePage() {
   const energy = useEnergyStream();
   const liveKW = energy.liveWatts / 1000;
 
+  const toggleCamera = () => {
+    const next = !showCamera;
+    setShowCamera(next);
+    if (smartHome.cameraDevice) smartHome.setDevicePower(smartHome.cameraDevice.id, next);
+  };
+
   return (
     <section className="main-workspace">
       <header className="workspace-header">
@@ -76,7 +82,7 @@ export function SmartHomePage() {
           showCamera={showCamera}
           onSelectLayer={setSelectedLayer}
           onSelectRoom={smartHome.selectRoom}
-          onToggleCamera={() => setShowCamera((c) => !c)}
+          onToggleCamera={toggleCamera}
           onToggleConfiguredDevice={smartHome.toggleConfiguredDevice}
           onToggleDoorLock={smartHome.toggleDoorLock}
           onToggleExpand={() => setCanvasExpanded((current) => !current)}
