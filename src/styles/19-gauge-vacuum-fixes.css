@@ -1,0 +1,186 @@
+/* OWNER: targeted fixes for climate gauge drag/glow and robot vacuum controls. */
+.circ-gauge,
+.climate-gauge-wrap {
+  overflow: visible;
+}
+
+.panel--climate {
+  overflow: visible;
+}
+
+.circ-gauge__svg {
+  width: 192px;
+  height: 192px;
+  margin: -18px;
+  overflow: visible;
+  contain: paint;
+}
+
+.circ-gauge__progress,
+.circ-gauge__knob {
+  will-change: auto;
+}
+
+.circ-gauge:not(.is-dragging) .circ-gauge__progress,
+.circ-gauge:not(.is-dragging) .circ-gauge__knob {
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+.circ-gauge.is-dragging .circ-gauge__progress,
+.circ-gauge.is-dragging .circ-gauge__knob {
+  transition: none;
+}
+
+@media (max-height: 900px) {
+  .circ-gauge__svg {
+    width: 210px;
+    height: 210px;
+    margin: -15px;
+  }
+}
+
+.right-rail {
+  grid-template-rows: minmax(0, 1.08fr) minmax(0, 0.96fr) minmax(0, 1.34fr);
+}
+
+.panel--cleaning {
+  grid-template-rows: auto minmax(56px, 1fr) auto auto;
+  row-gap: 7px;
+  padding: 14px 16px;
+}
+
+.panel--cleaning .panel__header {
+  min-height: 34px;
+  align-items: flex-start;
+}
+
+.vacuum-status-pill {
+  min-width: 72px;
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(247, 244, 251, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  font-size: 10.5px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.vacuum-status-pill.is-cleaning {
+  color: #0f9f68;
+  background: rgba(24, 190, 120, 0.13);
+  box-shadow: 0 10px 20px rgba(24, 190, 120, 0.16);
+}
+
+.panel--cleaning .vacuum-card-visual {
+  min-height: 58px;
+  margin: -2px 0 0;
+  overflow: visible;
+}
+
+.panel--cleaning .vacuum-card-visual img {
+  width: 136px;
+  transform: translateY(-2px);
+  pointer-events: none;
+}
+
+.panel--cleaning .vacuum-card-visual__battery {
+  top: 0;
+  right: 2px;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 5px;
+  justify-items: end;
+  padding: 5px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 8px 18px rgba(60, 48, 84, 0.08);
+}
+
+.panel--cleaning .vacuum-card-visual__battery strong {
+  font-size: 17px;
+}
+
+.panel--cleaning .vacuum-card-visual__battery span {
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin-top: -1px;
+  font-size: 9.5px;
+}
+
+.vacuum-action-row {
+  display: grid;
+  grid-template-columns: 1.18fr 0.9fr 0.9fr 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.vacuum-action-button {
+  height: 31px;
+  min-width: 0;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 14px;
+  color: var(--ink-soft);
+  background: rgba(247, 244, 251, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  font-size: 10.5px;
+  font-weight: 760;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 140ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.vacuum-action-button:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: 0 10px 20px rgba(76, 59, 140, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.vacuum-action-button--primary {
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent-2), #4e35b1);
+  box-shadow: 0 12px 22px rgba(101, 76, 203, 0.22);
+}
+
+.vacuum-action-button--icon {
+  padding: 0;
+}
+
+.vacuum-mode-row {
+  min-height: 27px;
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.vacuum-mode-chip {
+  height: 27px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  background: rgba(247, 244, 251, 0.82);
+  font-size: 10px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.vacuum-mode-chip.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(115, 82, 214, 0.12);
+}
+
+.vacuum-card-meta {
+  display: none;
+}
