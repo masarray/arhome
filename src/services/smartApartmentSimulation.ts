@@ -138,12 +138,15 @@ export function buildSmartApartmentDeviceLoads(
   const doorLock = getDevice(state, "door-lock");
   const energyMeter = getDevice(state, "energy-meter");
 
+  const climateOn = Boolean(climate?.power);
   const targetTemp = Number(climate?.value ?? 24);
   const coolingDemand = 0.18 + nightScore * 0.42 + eveningScore * 0.34 + middayScore * 0.28;
-  const acLiving = climate?.power
+  const acLiving = climateOn
     ? 270 + 980 * coolingDemand + Math.abs(24 - targetTemp) * 42
-    : 35;
-  const acBedroom = 120 + 840 * (nightScore * 0.78 + eveningScore * 0.28 + middayScore * 0.18);
+    : 9;
+  const acBedroom = climateOn
+    ? 120 + 840 * (nightScore * 0.78 + eveningScore * 0.28 + middayScore * 0.18)
+    : 8;
   const fridge = 85 + Math.max(0, Math.sin(now.getMinutes() / 5.5)) * 24;
   const lighting = buildLightingWatts(state, now);
   const tv = 10 + (eveningScore + (isWeekend ? bell(now.getHours() + now.getMinutes() / 60, 14, 1.8) * 0.55 : 0)) * 125;
@@ -156,8 +159,8 @@ export function buildSmartApartmentDeviceLoads(
   const robotVacuumLoad = vacuumWatts(vacuum);
 
   const builtInLoads: DeviceLoad[] = [
-    { id: "ac-bedroom", label: "AC Bedroom", room: "Bedroom", category: "climate", watts: acBedroom, on: true },
-    { id: "ac-living", label: "AC Living", room: "Living", category: "climate", watts: acLiving, on: true },
+    { id: "ac-bedroom", label: "AC Bedroom", room: "Bedroom", category: "climate", watts: acBedroom, on: climateOn },
+    { id: "ac-living", label: "AC Living", room: "Living", category: "climate", watts: acLiving, on: climateOn },
     { id: "fridge", label: "Kulkas", room: "Kitchen", category: "appliance", watts: fridge, on: true },
     { id: "lighting", label: "Lampu apartemen", room: "All", category: "lighting", watts: lighting, on: lighting > 2 },
     { id: "tv-living", label: "TV & Hiburan", room: "Living", category: "appliance", watts: tv, on: tv > 20 },
