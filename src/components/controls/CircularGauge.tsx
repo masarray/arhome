@@ -21,6 +21,8 @@ const SIZE = TRACK_SIZE + SVG_PADDING * 2;
 const STROKE = 12;
 const RADIUS = (TRACK_SIZE - STROKE) / 2;
 const CENTER = SIZE / 2;
+const HIT_INNER = RADIUS - 40;
+const HIT_OUTER = RADIUS + 34;
 
 // polar -> svg cartesian
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
@@ -34,6 +36,14 @@ function describeArc(start: number, end: number) {
   const p2 = polar(CENTER, CENTER, RADIUS, safeEnd);
   const large = safeEnd - start > 180 ? 1 : 0;
   return `M ${p1.x} ${p1.y} A ${RADIUS} ${RADIUS} 0 ${large} 1 ${p2.x} ${p2.y}`;
+}
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function formatReadout(value: number) {
+  return value.toFixed(1).padStart(4, "0");
 }
 
 const MODE_TONE: Record<string, { bg: string; ring: string; label: string }> = {
@@ -58,8 +68,10 @@ export function CircularGauge({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const draggingRef = useRef(false);
   const valueRef = useRef(value);
+  const readoutRef = useRef(value);
   const [draftValue, setDraftValue] = useState(value);
   const [dragging, setDragging] = useState(false);
+  const [readoutValue, setReadoutValue] = useState(value);
   const idBase = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const gradId = `cg-grad-${idBase}`;
   const glowId = `cg-glow-${idBase}`;
@@ -71,6 +83,31 @@ export function CircularGauge({
   useEffect(() => {
     if (!draggingRef.current) setDraftValue(value);
   }, [value]);
+
+  useEffect(() => {
+    const from = readoutRef.current;
+    const to = displayValue;
+    if (Math.abs(from - to) < 0.01) {
+      readoutRef.current = to;
+      setReadoutValue(to);
+      return;
+    }
+
+    let frame = 0;
+    const duration = dragging ? 90 : 180;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const next = from + (to - from) * easeOutCubic(progress);
+      readoutRef.current = next;
+      setReadoutValue(next);
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [displayValue, dragging]);
 
   const ratio = (displayValue - min) / (max - min);
   const tone = MODE_TONE[mode] ?? MODE_TONE.cool;
@@ -84,6 +121,12 @@ export function CircularGauge({
     const cy = rect.top + rect.height / 2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
+    const distance = Math.hypot(dx, dy);
+
+    // Only the gauge ring is interactive. This prevents the oversized SVG glow area
+    // from stealing clicks from the AC mode buttons below the gauge.
+    if (distance < HIT_INNER || distance > HIT_OUTER) return null;
+
     let deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90; // shift so 0deg = top
     if (deg > 180) deg -= 360;
     if (deg < -180) deg += 360;
@@ -103,11 +146,14 @@ export function CircularGauge({
   };
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    const local = angleFromEvent(e);
+    if (local == null) return;
+    e.preventDefault();
+    e.stopPropagation();
     draggingRef.current = true;
     setDragging(true);
     svgRef.current?.setPointerCapture(e.pointerId);
-    const local = angleFromEvent(e);
-    if (local != null) commit(local);
+    commit(local);
   };
 
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -143,6 +189,8 @@ export function CircularGauge({
     return () => node.removeEventListener("keydown", handler);
   }, [value, step, min, max, onChange]);
 
+  const readoutText = formatReadout(clamp(readoutValue));
+
   return (
     <div className={`circ-gauge ${on ? "is-on" : "is-off"} ${dragging ? "is-dragging" : ""}`} data-mode={mode}>
       <svg
@@ -157,6 +205,7 @@ export function CircularGauge({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={displayValue}
+        aria-valuetext={`${readoutText}${unit}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -215,7 +264,7 @@ export function CircularGauge({
       </svg>
       <div className="circ-gauge__center" aria-hidden>
         <span className="circ-gauge__value">
-          {Number.isInteger(displayValue) ? displayValue : displayValue.toFixed(1)}
+          <span className="circ-gauge__number">{readoutText}</span>
           <em>{unit}</em>
         </span>
         <span className="circ-gauge__label">{tone.label} · {on ? "Running" : "Standby"}</span>
