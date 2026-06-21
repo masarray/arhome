@@ -89,7 +89,11 @@ export function SmartHomePage() {
         />
 
         <aside className="right-rail" aria-label="Device control panels">
-          <CleaningPanel device={smartHome.vacuumDevice} onPowerChange={smartHome.setDevicePower} />
+          <CleaningPanel
+            device={smartHome.vacuumDevice}
+            onCommand={smartHome.controlVacuum}
+            onModeChange={smartHome.setDeviceMode}
+          />
           <LightingPanel
             activeLighting={smartHome.activeLighting}
             activeRoom={smartHome.activeRoom}
