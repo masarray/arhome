@@ -134,12 +134,15 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
         <VacuumBattery level={battery} charging={charging} />
       </div>
 
-      <div className="vacuum-compact-body">
-        <div className="vacuum-robot-stage" aria-hidden>
-          <img alt="" src={vacuum} />
+      <div className="vacuum-compact-body vacuum-compact-body--actions-right">
+        <div className="vacuum-robot-stage">
+          <img alt="" aria-hidden src={vacuum} />
+          <span className="vacuum-substatus vacuum-substatus--stage">
+            {batteryStateLabel(device.status)} · {nextRun}
+          </span>
         </div>
 
-        <div className="vacuum-control-pad" aria-label="Robot vacuum controls">
+        <div className="vacuum-command-stack" aria-label="Robot vacuum controls">
           <TipButton
             className="smart-control-button--primary vacuum-primary-action"
             label={cleaning ? "Pause cleaning" : "Start cleaning"}
@@ -149,35 +152,37 @@ export function CleaningPanel({ device, onCommand, onModeChange }: CleaningPanel
             {cleaning ? <Pause size={14} /> : <Play size={14} />}
             <span>{cleaning ? "Pause" : "Start"}</span>
           </TipButton>
-          <TipButton label="Return robot to dock" tip="Send robot to the charging dock" onClick={() => onCommand(device.id, "dock")}>
-            <Home size={14} />
-          </TipButton>
-          <TipButton label="Spot clean" tip="Clean a small focused area" onClick={() => onCommand(device.id, "spot")}>
-            <MapPin size={14} />
-          </TipButton>
-          <TipButton label="Locate robot" tip="Play a ping sound to find the robot" onClick={() => onCommand(device.id, "locate")}>
-            <Radar size={14} />
-          </TipButton>
-        </div>
-      </div>
 
-      <div className="vacuum-bottom-row">
-        <span className="vacuum-substatus">{batteryStateLabel(device.status)} · {nextRun}</span>
-        <div className="vacuum-mode-row smart-segment-row" aria-label="Robot suction mode">
-          <Sparkles size={13} />
-          {modeOptions.map((option) => (
-            <button
-              aria-label={`${option.label} suction mode`}
-              aria-pressed={currentMode === option.mode}
-              className={`vacuum-mode-chip ${currentMode === option.mode ? "is-active" : ""}`}
-              data-smart-tip={option.tip}
-              key={option.mode}
-              type="button"
-              onClick={() => onModeChange(device.id, option.mode)}
-            >
-              {option.label}
-            </button>
-          ))}
+          <div className="vacuum-icon-actions" aria-label="Robot quick actions">
+            <TipButton label="Return robot to dock" tip="Send robot to the charging dock" onClick={() => onCommand(device.id, "dock")}>
+              <Home size={14} />
+            </TipButton>
+            <TipButton label="Spot clean" tip="Clean a small focused area" onClick={() => onCommand(device.id, "spot")}>
+              <MapPin size={14} />
+            </TipButton>
+            <TipButton label="Locate robot" tip="Play a ping sound to find the robot" onClick={() => onCommand(device.id, "locate")}>
+              <Radar size={14} />
+            </TipButton>
+          </div>
+
+          <div className="vacuum-mode-row smart-segment-row" aria-label="Robot suction mode">
+            <Sparkles size={13} aria-hidden />
+            <div className="vacuum-mode-grid">
+              {modeOptions.map((option) => (
+                <button
+                  aria-label={`${option.label} suction mode`}
+                  aria-pressed={currentMode === option.mode}
+                  className={`vacuum-mode-chip ${currentMode === option.mode ? "is-active" : ""}`}
+                  data-smart-tip={option.tip}
+                  key={option.mode}
+                  type="button"
+                  onClick={() => onModeChange(device.id, option.mode)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
