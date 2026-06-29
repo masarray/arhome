@@ -152,26 +152,33 @@ export function buildSmartApartmentDeviceLoads(
   const doorLock = getDevice(state, "door-lock");
   const energyMeter = getDevice(state, "energy-meter");
 
+  const hourFloat = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  const sleepingHours = hourFloat >= 23 || hourFloat < 5;
   const climateOn = Boolean(climate?.power);
   const targetTemp = Number(climate?.value ?? 24);
   const targetAggressiveness = Math.max(0, 25 - targetTemp) * 0.055 + Math.max(0, targetTemp - 26) * -0.025;
-  const coolingDemand = Math.max(
-    0.08,
-    0.16 + nightScore * 0.45 + eveningScore * 0.32 + middayScore * (isWeekend ? 0.42 : 0.18) + targetAggressiveness,
-  );
   const homeOccupiedFactor = isWeekend ? 1 : 1 - awayScore * 0.62;
+  const bedroomDemand = Math.max(
+    0.04,
+    nightScore * 0.9 + eveningScore * 0.22 + middayScore * (isWeekend ? 0.22 : 0.05) + targetAggressiveness,
+  );
+  const livingDemand = Math.max(
+    0.03,
+    eveningScore * 0.46 + middayScore * (isWeekend ? 0.38 : 0.16) + lunchScore * (isWeekend ? 0.12 : 0.04),
+  );
+  const sleepingLivingAttenuation = sleepingHours ? 0.18 : 1;
   const acLiving = climateOn
-    ? 180 + 910 * coolingDemand * Math.max(0.38, homeOccupiedFactor) + Math.abs(24 - targetTemp) * 34
+    ? 38 + 760 * livingDemand * Math.max(0.35, homeOccupiedFactor) * sleepingLivingAttenuation + Math.max(0, 24 - targetTemp) * 18
     : 8;
   const acBedroom = climateOn
-    ? 110 + 780 * (nightScore * 0.82 + eveningScore * 0.22 + middayScore * (isWeekend ? 0.24 : 0.08))
+    ? 105 + 820 * bedroomDemand + Math.max(0, 24 - targetTemp) * 24
     : 7;
   const fridge = 84 + Math.max(0, Math.sin(now.getMinutes() / 5.5)) * 26;
   const lighting = buildLightingWatts(state, now);
-  const tv = 8 + (eveningScore + (isWeekend ? bell(now.getHours() + now.getMinutes() / 60, 14.4, 2.1) * 0.62 : 0)) * 118;
+  const tv = 8 + (eveningScore + (isWeekend ? bell(hourFloat, 14.4, 2.1) * 0.62 : 0)) * 118;
   const kitchenProfile = Math.max(breakfastScore * 0.74, lunchScore * (isWeekend ? 0.78 : 0.42), dinnerScore);
   const kitchen = 5 + kitchenProfile * (isWeekend ? 1020 : 820);
-  const laundryProfile = (isWeekend || now.getDay() % 3 === 0) ? bell(now.getHours() + now.getMinutes() / 60, isWeekend ? 10.4 : 8.6, 0.82) : 0;
+  const laundryProfile = (isWeekend || now.getDay() % 3 === 0) ? bell(hourFloat, isWeekend ? 10.4 : 8.6, 0.82) : 0;
   const laundry = laundryProfile > 0.18 ? 1180 * laundryProfile : 0;
   const activeOutlets = Object.values(state.outletStates).filter((outlet) => outlet.on).length;
   const outletWatts = activeOutlets > 0 ? activeOutlets * (54 + eveningScore * 45 + (isWeekend ? middayScore * 26 : 0)) + 4 : 1;
