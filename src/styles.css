@@ -11,6 +11,7 @@
 @import "./styles/09-responsive.css";
 @import "./styles/10-gauge.css";
 @import "./styles/11-energy.css";
+@import "./styles/11-energy-compact.css";
 @import "./styles/12-invoice.css";
 @import "./styles/13-wizard.css";
 @import "./styles/14-router.css";
