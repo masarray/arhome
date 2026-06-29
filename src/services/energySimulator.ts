@@ -16,16 +16,21 @@ export type LiveSample = { ts: number; watts: number; perDevice: Record<string, 
 
 type State = {
   lastTick: number;
-  hours: HourBucket[]; // rolling 24 * 30 days
+  hours: HourBucket[]; // rolling 24 * 32 days
   monthlyKwh: Record<string, number>; // "2026-06" -> kWh
   monthlyPerDevice: Record<string, Record<string, number>>;
   liveSamples: LiveSample[]; // rolling realtime power trace in watts
 };
 
-const KEY = "mas.energy.v2";
+type DeviceFactory = (at?: Date) => DeviceLoad[];
+
+// v3 intentionally resets stale demo history created by the older second-only accumulator.
+const KEY = "mas.energy.v3";
 const MAX_HOURS = 24 * 32;
 const MAX_LIVE_SAMPLES = 180;
 const PERSIST_INTERVAL_MS = 5000;
+const CATCH_UP_STEP_MS = 5 * 60_000;
+const LONG_GAP_MS = 10_000;
 
 function emptyState(): State {
   return {
@@ -213,7 +218,7 @@ class EnergySimulator {
   private state: State;
   private listeners = new Set<(snapshot: Snapshot) => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
-  private deviceFactory: (() => DeviceLoad[]) | null = null;
+  private deviceFactory: DeviceFactory | null = null;
   private lastPersistAt = 0;
 
   constructor() {
@@ -222,9 +227,10 @@ class EnergySimulator {
     this.lastPersistAt = Date.now();
   }
 
-  setDeviceFactory(fn: () => DeviceLoad[]) {
+  setDeviceFactory(fn: DeviceFactory) {
     this.deviceFactory = fn;
     const now = Date.now();
+    this.repairCurrentDayIfClearlyEmpty(now);
     const latest = this.state.liveSamples[this.state.liveSamples.length - 1];
     if (!latest || now - latest.ts > 10_000 || this.state.liveSamples.length < 30) {
       this.primeLiveSamples(now);
@@ -292,7 +298,7 @@ class EnergySimulator {
   }
 
   private getMeasuredDevices(now: number) {
-    const nominal = this.deviceFactory?.() ?? [];
+    const nominal = this.deviceFactory?.(new Date(now)) ?? [];
     return nominal.map((device) => ({
       ...device,
       watts: Number(measuredDeviceWatts(device, now).toFixed(2)),
@@ -307,6 +313,84 @@ class EnergySimulator {
       watts += d.watts;
     }
     return { ts, watts: Math.round(watts), perDevice };
+  }
+
+  private trimHours() {
+    this.state.hours.sort((a, b) => a.ts - b.ts);
+    while (this.state.hours.length > MAX_HOURS) this.state.hours.shift();
+  }
+
+  private addEnergy(sampleTs: number, elapsedMs: number, devices: DeviceLoad[]) {
+    const bucketTs = hourBucketStart(sampleTs);
+    let bucket = this.state.hours.find((h) => h.ts === bucketTs);
+    if (!bucket) {
+      bucket = { ts: bucketTs, kwh: 0, perDevice: {} };
+      this.state.hours.push(bucket);
+      this.trimHours();
+    }
+    const mk = monthKey(sampleTs);
+    const mpd = (this.state.monthlyPerDevice[mk] ??= {});
+    this.state.monthlyKwh[mk] = this.state.monthlyKwh[mk] ?? 0;
+    const dt = elapsedMs / 3_600_000;
+    for (const d of devices) {
+      const energy = (d.watts / 1000) * dt;
+      bucket.perDevice[d.id] = (bucket.perDevice[d.id] ?? 0) + energy;
+      bucket.kwh += energy;
+      mpd[d.id] = (mpd[d.id] ?? 0) + energy;
+      this.state.monthlyKwh[mk] += energy;
+    }
+  }
+
+  private catchUpEnergy(from: number, to: number) {
+    if (!this.deviceFactory || to <= from) return;
+    let cursor = Math.max(from, to - MAX_HOURS * 3600_000);
+    while (cursor < to) {
+      const next = Math.min(to, cursor + CATCH_UP_STEP_MS);
+      const sampleTs = cursor + (next - cursor) / 2;
+      this.addEnergy(sampleTs, next - cursor, this.getMeasuredDevices(sampleTs));
+      cursor = next;
+    }
+    this.trimHours();
+  }
+
+  private removeBucketsFrom(startTs: number, endTs: number) {
+    const kept: HourBucket[] = [];
+    for (const bucket of this.state.hours) {
+      if (bucket.ts < startTs || bucket.ts > endTs) {
+        kept.push(bucket);
+        continue;
+      }
+      const mk = monthKey(bucket.ts);
+      this.state.monthlyKwh[mk] = Math.max(0, (this.state.monthlyKwh[mk] ?? 0) - bucket.kwh);
+      const mpd = this.state.monthlyPerDevice[mk];
+      if (mpd) {
+        for (const [id, value] of Object.entries(bucket.perDevice)) {
+          const next = (mpd[id] ?? 0) - value;
+          if (next <= 0.000001) delete mpd[id];
+          else mpd[id] = next;
+        }
+      }
+    }
+    this.state.hours = kept;
+  }
+
+  private repairCurrentDayIfClearlyEmpty(now: number) {
+    if (!this.deviceFactory) return;
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const startTs = todayStart.getTime();
+    const elapsedMs = now - startTs;
+    if (elapsedMs < 30 * 60_000) return;
+    const todayKwh = this.state.hours
+      .filter((b) => b.ts >= startTs && b.ts <= now)
+      .reduce((sum, b) => sum + b.kwh, 0);
+    const liveWatts = this.makeLiveSample(now, this.getMeasuredDevices(now)).watts;
+    const minimumPlausible = Math.max(0.08, (liveWatts / 1000) * (elapsedMs / 3_600_000) * 0.16);
+    if (todayKwh >= minimumPlausible) return;
+    this.removeBucketsFrom(startTs, hourBucketStart(now));
+    this.catchUpEnergy(startTs, now);
+    this.state.lastTick = now;
+    this.persist();
   }
 
   private primeLiveSamples(now: number) {
@@ -336,31 +420,17 @@ class EnergySimulator {
   private tick() {
     if (!this.deviceFactory) return;
     const now = Date.now();
-    const elapsedMs = Math.min(2000, now - this.state.lastTick);
-    this.state.lastTick = now;
+    const elapsedMs = now - this.state.lastTick;
     if (elapsedMs <= 0) return;
+    if (elapsedMs > LONG_GAP_MS) {
+      this.catchUpEnergy(this.state.lastTick, now);
+    } else {
+      this.addEnergy(now, elapsedMs, this.getMeasuredDevices(now));
+    }
+    this.state.lastTick = now;
     const devices = this.getMeasuredDevices(now);
-    const bucketTs = hourBucketStart(now);
-    let bucket = this.state.hours[this.state.hours.length - 1];
-    let bucketCreated = false;
-    if (!bucket || bucket.ts !== bucketTs) {
-      bucket = { ts: bucketTs, kwh: 0, perDevice: {} };
-      this.state.hours.push(bucket);
-      bucketCreated = true;
-      if (this.state.hours.length > MAX_HOURS) this.state.hours.shift();
-    }
-    const mk = monthKey(now);
-    const mpd = (this.state.monthlyPerDevice[mk] ??= {});
-    const dt = elapsedMs / 3_600_000;
-    for (const d of devices) {
-      const energy = (d.watts / 1000) * dt;
-      bucket.perDevice[d.id] = (bucket.perDevice[d.id] ?? 0) + energy;
-      bucket.kwh += energy;
-      mpd[d.id] = (mpd[d.id] ?? 0) + energy;
-      this.state.monthlyKwh[mk] = (this.state.monthlyKwh[mk] ?? 0) + energy;
-    }
     this.pushLiveSample(now, devices);
-    if (bucketCreated || now - this.lastPersistAt >= PERSIST_INTERVAL_MS) {
+    if (elapsedMs > LONG_GAP_MS || now - this.lastPersistAt >= PERSIST_INTERVAL_MS) {
       this.persist();
       this.lastPersistAt = now;
     }
@@ -371,6 +441,15 @@ class EnergySimulator {
     saveJSON(KEY, this.state);
   }
 
+  private snapshotHours(now: number) {
+    const currentHour = hourBucketStart(now);
+    const hours = this.state.hours.slice();
+    if (!hours.some((bucket) => bucket.ts === currentHour)) {
+      hours.push({ ts: currentHour, kwh: 0, perDevice: {} });
+    }
+    return hours.sort((a, b) => a.ts - b.ts).slice(-MAX_HOURS);
+  }
+
   snapshot(devicesOverride?: DeviceLoad[]): Snapshot {
     const now = Date.now();
     const devices = devicesOverride ?? this.getMeasuredDevices(now);
@@ -378,9 +457,10 @@ class EnergySimulator {
     const liveSamples = this.state.liveSamples.length > 0
       ? this.state.liveSamples.slice(-MAX_LIVE_SAMPLES)
       : [sample];
-    const todayStart = new Date();
+    const hours = this.snapshotHours(now);
+    const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    const todayKwh = this.state.hours
+    const todayKwh = hours
       .filter((b) => b.ts >= todayStart.getTime() && b.ts <= now)
       .reduce((s, b) => s + b.kwh, 0);
     const mk = monthKey(now);
@@ -391,7 +471,7 @@ class EnergySimulator {
         ? liveSamples
         : [...liveSamples, sample].slice(-MAX_LIVE_SAMPLES),
       todayKwh,
-      hours: this.state.hours.slice(),
+      hours,
       monthlyKwh: { ...this.state.monthlyKwh },
       monthlyPerDevice: this.state.monthlyPerDevice[mk] ?? {},
       devices,
