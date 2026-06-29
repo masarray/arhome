@@ -12,6 +12,7 @@ export const TARIFF = {
   materaiThreshold: 5_000_000,
   materai: 10_000,
   minHourly: 40,
+  assumedPowerFactor: 0.9,
 } as const;
 
 export function calcMinimumKwh() {
