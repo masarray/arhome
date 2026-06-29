@@ -1,0 +1,164 @@
+/*
+ * OWNER: Energy dashboard compact hero polish.
+ * Keeps the live hero exactly aligned with the three stat cards in the first bento row.
+ */
+.bento-card--hero {
+  grid-row: span 1 !important;
+  height: 120px;
+  min-height: 120px;
+  max-height: 120px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.bento-card--stat {
+  min-height: 120px;
+}
+
+.bento-card--hero .hero-live {
+  height: 96px;
+  min-height: 0;
+  grid-template-columns: minmax(148px, 0.74fr) minmax(340px, 1.58fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.bento-card--hero .hero-live > div:first-child {
+  align-self: center;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  transform: translateY(-1px);
+}
+
+.bento-card--hero .hero-live__value {
+  margin: 0;
+  font-size: 43px;
+  line-height: 0.88;
+  letter-spacing: -0.06em;
+}
+
+.bento-card--hero .hero-live__value em {
+  margin-left: 5px;
+  font-size: 16px;
+}
+
+.bento-card--hero .hero-live__meter {
+  height: 5px;
+}
+
+.bento-card--hero .hero-live small {
+  margin-top: 1px;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 9.8px;
+  line-height: 1.15;
+}
+
+.bento-card--hero .warn-pill,
+.bento-card--hero .realtime-pill {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  font-size: 9.4px;
+}
+
+.bento-card--hero .hero-live__spark {
+  height: 96px;
+  min-height: 0;
+  align-self: center;
+  grid-template-columns: minmax(142px, 0.92fr) minmax(170px, 1.08fr);
+  grid-template-rows: 18px 54px;
+  gap: 4px 9px;
+  overflow: hidden;
+}
+
+.bento-card--hero .hero-live__spark-head {
+  height: 18px;
+  align-self: end;
+  font-size: 9.5px;
+  line-height: 1;
+}
+
+.bento-card--hero .hero-live__spark-head em {
+  padding: 2px 7px;
+  font-size: 9.3px;
+}
+
+.bento-card--hero .hero-live__spark > .recharts-responsive-container {
+  height: 48px !important;
+  max-height: 48px;
+  align-self: start;
+  overflow: hidden;
+}
+
+.bento-card--hero .power-flow-list {
+  align-self: center;
+  max-height: 82px;
+  padding: 6px 7px;
+  gap: 3px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.bento-card--hero .power-flow-list li:nth-child(n + 4) {
+  display: none;
+}
+
+.bento-card--hero .power-flow-list__head {
+  gap: 6px;
+  font-size: 9.8px;
+  line-height: 1;
+}
+
+.bento-card--hero .power-flow-list__head em {
+  font-size: 9.3px;
+}
+
+.bento-card--hero .power-flow-list__track {
+  height: 4px;
+  margin-top: 3px;
+}
+
+@media (max-width: 1200px) {
+  .bento-card--hero {
+    height: 132px;
+    min-height: 132px;
+    max-height: 132px;
+  }
+
+  .bento-card--hero .hero-live {
+    height: 108px;
+    grid-template-columns: minmax(160px, 0.78fr) minmax(420px, 1.5fr);
+  }
+
+  .bento-card--hero .hero-live__spark {
+    height: 108px;
+    grid-template-rows: 20px 62px;
+  }
+
+  .bento-card--hero .hero-live__spark > .recharts-responsive-container {
+    height: 56px !important;
+    max-height: 56px;
+  }
+}
+
+@media (max-width: 760px) {
+  .bento-card--hero {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .bento-card--hero .hero-live,
+  .bento-card--hero .hero-live__spark {
+    height: auto;
+  }
+}
