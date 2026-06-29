@@ -57,6 +57,7 @@ const DEVICE_LABEL: Record<string, string> = {
   doorbell: "Door bell",
   "door-lock": "Door lock",
   "energy-meter": "Energy meter",
+  others: "Lainnya",
 };
 
 function formatEventTime(ts: number) {
@@ -74,21 +75,49 @@ function formatLiveTime(ts: number) {
   }).format(new Date(ts));
 }
 
+function startOfHour(ts: number) {
+  const d = new Date(ts);
+  d.setMinutes(0, 0, 0);
+  return d.getTime();
+}
+
+function sumValues(values: Record<string, number>) {
+  return Object.values(values).reduce((sum, value) => sum + value, 0);
+}
+
 export function EnergyPage() {
   const invoices = useInvoices();
   const snap = useEnergyStream();
   const home = useSmartHome();
   const [resetOpen, setResetOpen] = useState(false);
 
-  // Last 24 hours
+  const mtdKwh = useMemo(() => {
+    const mk = new Date(snap.now);
+    const key = `${mk.getFullYear()}-${String(mk.getMonth() + 1).padStart(2, "0")}`;
+    return snap.monthlyKwh[key] ?? 0;
+  }, [snap.monthlyKwh, snap.now]);
+
+  // Last 24 hours. Current hour is displayed as kWh/hour equivalent so it does not look like zero while live load is high.
   const last24 = useMemo(() => {
-    const slice = snap.hours.slice(-24);
-    return slice.map((h) => ({
-      hour: new Date(h.ts).getHours().toString().padStart(2, "0"),
-      kwh: Number(h.kwh.toFixed(2)),
-      watts: Math.round(h.kwh * 1000),
-    }));
-  }, [snap.hours]);
+    const currentHourTs = startOfHour(snap.now);
+    const hours = snap.hours.slice();
+    if (!hours.some((h) => h.ts === currentHourTs)) {
+      hours.push({ ts: currentHourTs, kwh: 0, perDevice: {} });
+    }
+    return hours
+      .sort((a, b) => a.ts - b.ts)
+      .slice(-24)
+      .map((h) => {
+        const isCurrent = h.ts === currentHourTs;
+        const displayKwh = isCurrent ? Math.max(h.kwh, snap.liveWatts / 1000) : h.kwh;
+        return {
+          hour: new Date(h.ts).getHours().toString().padStart(2, "0"),
+          kwh: Number(displayKwh.toFixed(2)),
+          actualKwh: Number(h.kwh.toFixed(2)),
+          isCurrent,
+        };
+      });
+  }, [snap.hours, snap.liveWatts, snap.now]);
 
   // Actual rolling meter samples from the simulator, not a decorative fake wave.
   const sparkline = useMemo(() => {
@@ -118,16 +147,30 @@ export function EnergyPage() {
   const latestLiveSample = snap.liveSamples[snap.liveSamples.length - 1];
   const latestSampleAge = latestLiveSample ? Math.max(0, Math.round((snap.now - latestLiveSample.ts) / 1000)) : 0;
 
-  // Device share donut (this month)
+  // Device share donut (this month), including Others so the card total matches the monthly total.
   const deviceShare = useMemo(() => {
     const entries = Object.entries(snap.monthlyPerDevice).sort((a, b) => b[1] - a[1]);
-    return entries.slice(0, 8).map(([id, kwh], idx) => ({
+    const trackedTotal = sumValues(snap.monthlyPerDevice);
+    const untracked = Math.max(0, mtdKwh - trackedTotal);
+    const topCount = entries.length > 8 || untracked > 0.05 ? 7 : 8;
+    const top = entries.slice(0, topCount);
+    const rest = entries.slice(topCount).reduce((sum, [, kwh]) => sum + kwh, 0) + untracked;
+    const items = top.map(([id, kwh], idx) => ({
       id,
       name: DEVICE_LABEL[id] ?? id.replace(/^configured-/, ""),
       value: Number(kwh.toFixed(2)),
       color: DEVICE_COLORS[idx % DEVICE_COLORS.length],
     }));
-  }, [snap.monthlyPerDevice]);
+    if (rest > 0.05) {
+      items.push({
+        id: "others",
+        name: "Lainnya",
+        value: Number(rest.toFixed(2)),
+        color: DEVICE_COLORS[items.length % DEVICE_COLORS.length],
+      });
+    }
+    return items;
+  }, [mtdKwh, snap.monthlyPerDevice]);
 
   // 7×24 heatmap
   const heatmap = useMemo(() => {
@@ -155,16 +198,10 @@ export function EnergyPage() {
       }));
   }, [snap.monthlyPerDevice]);
 
-  // Month-to-date and projection
-  const mtdKwh = useMemo(() => {
-    const mk = new Date(snap.now);
-    const key = `${mk.getFullYear()}-${String(mk.getMonth() + 1).padStart(2, "0")}`;
-    return snap.monthlyKwh[key] ?? 0;
-  }, [snap.monthlyKwh, snap.now]);
-
-  const daysElapsed = useMemo(() => {
+  const elapsedDays = useMemo(() => {
     const d = new Date(snap.now);
-    return Math.max(1, d.getDate());
+    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    return Math.max((snap.now - monthStart) / 86_400_000, 1 / 24);
   }, [snap.now]);
 
   const daysInMonth = useMemo(() => {
@@ -172,13 +209,13 @@ export function EnergyPage() {
     return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
   }, [snap.now]);
 
-  const projectedKwh = (mtdKwh / daysElapsed) * daysInMonth;
+  const projectedKwh = (mtdKwh / elapsedDays) * daysInMonth;
   const projectedBreakdown = buildInvoiceBreakdown(projectedKwh);
   const mtdBreakdown = buildInvoiceBreakdown(Math.max(mtdKwh, 0.01));
 
   const liveKW = snap.liveWatts / 1000;
-  const contractKW = TARIFF.contractVA / 1000;
-  const rawLoadPct = contractKW > 0 ? (liveKW / contractKW) * 100 : 0;
+  const liveKVA = liveKW / TARIFF.assumedPowerFactor;
+  const rawLoadPct = TARIFF.contractVA > 0 ? ((liveKVA * 1000) / TARIFF.contractVA) * 100 : 0;
   const meterPct = Math.min(100, rawLoadPct);
   const loadState = rawLoadPct >= 100 ? "over" : rawLoadPct >= 90 ? "warning" : rawLoadPct >= 70 ? "high" : "normal";
   const loadStateLabel =
@@ -242,13 +279,13 @@ export function EnergyPage() {
                 />
               </div>
               <small>
-                {rawLoadPct.toFixed(0)}% dari kontrak {contractKW.toFixed(1)} kW
+                {rawLoadPct.toFixed(0)}% dari kontrak {TARIFF.contractKVA.toFixed(1)} kVA · estimasi {liveKVA.toFixed(2)} kVA
                 {loadState !== "normal" ? (
                   <span className={`warn-pill ${loadState === "over" ? "is-over" : ""}`}>
                     <AlertTriangle size={12} /> {loadStateLabel}
                   </span>
                 ) : (
-                  <span className="realtime-pill">fluktuatif live</span>
+                  <span className="realtime-pill">PF {TARIFF.assumedPowerFactor.toFixed(2)}</span>
                 )}
               </small>
             </div>
@@ -329,7 +366,7 @@ export function EnergyPage() {
         <article className="bento-card bento-card--chart">
           <header className="bento-card__head">
             <span className="bento-eyebrow">24 jam terakhir</span>
-            <span className="bento-tag">kWh aktual / jam</span>
+            <span className="bento-tag">kWh / jam, live-adjusted</span>
           </header>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={last24} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
@@ -390,7 +427,7 @@ export function EnergyPage() {
               </PieChart>
             </ResponsiveContainer>
             <ul className="donut-legend">
-              {deviceShare.slice(0, 6).map((d) => (
+              {deviceShare.map((d) => (
                 <li key={d.id}>
                   <span style={{ background: d.color }} />
                   {d.name}
