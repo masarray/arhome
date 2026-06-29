@@ -48,10 +48,11 @@ export function EnergyAdvisorCard() {
   const minKw = Math.min(...sampleWatts) / 1000;
   const maxKw = Math.max(...sampleWatts) / 1000;
   const avgKw = sampleWatts.reduce((sum, value) => sum + value, 0) / sampleWatts.length / 1000;
-  const contractKw = TARIFF.contractVA / 1000;
+  const contractKva = TARIFF.contractKVA;
   const trend = powerTrend(samples);
-  const forecastKw = clamp(avgKw + trend.deltaKw * 0.45, 0.08, Math.max(contractKw * 1.35, maxKw + 0.25));
-  const demandPct = contractKw > 0 ? (forecastKw / contractKw) * 100 : 0;
+  const forecastKw = clamp(avgKw + trend.deltaKw * 0.45, 0.08, Math.max(contractKva * TARIFF.assumedPowerFactor * 1.35, maxKw + 0.25));
+  const forecastKva = forecastKw / TARIFF.assumedPowerFactor;
+  const demandPct = contractKva > 0 ? (forecastKva / contractKva) * 100 : 0;
   const top = snap.devices.slice().sort((a, b) => b.watts - a.watts)[0];
   const topLabel = top ? DEVICE_LABEL[top.id] ?? top.label : "Smart meter";
   const hour = new Date(snap.now).getHours();
@@ -65,7 +66,7 @@ export function EnergyAdvisorCard() {
       return `Beban mendekati batas. Mode eco AC dan jadwal tunda dapur/laundry akan menahan lonjakan.`;
     }
     if (top?.id.startsWith("ac-")) {
-      return `AC menjadi beban dominan. Naikkan setpoint 1°C untuk menurunkan demand tanpa mengubah layout.`;
+      return `AC menjadi beban dominan. Naikkan setpoint 1 derajat untuk menurunkan demand tanpa mengubah layout.`;
     }
     if (top?.id === "kitchen" || top?.id === "wm-dryer") {
       return `Ada appliance siklik yang sedang aktif. Biarkan selesai atau jadwalkan di luar jam puncak.`;
@@ -88,7 +89,7 @@ export function EnergyAdvisorCard() {
         <div className="advisor-metric">
           <span>Prediksi demand 15 menit</span>
           <strong>{forecastKw.toFixed(2)} kW</strong>
-          <em>{demandPct.toFixed(0)}% kontrak · ≈ {formatRupiah(forecastKw * 0.25 * TARIFF.ratePerKwh)}</em>
+          <em>{demandPct.toFixed(0)}% kontrak · {forecastKva.toFixed(2)} kVA · ≈ {formatRupiah(forecastKw * 0.25 * TARIFF.ratePerKwh)}</em>
         </div>
         <div className="advisor-metric">
           <span>Rentang meter live</span>
@@ -115,7 +116,7 @@ export function EnergyAdvisorCard() {
         <b style={{ width: `${Math.min(100, demandPct)}%` }} />
       </div>
       <small className="advisor-caption">
-        <TrendingUp size={13} /> Forecast memakai rolling meter sample dan ritme pemakaian jam saat ini.
+        <TrendingUp size={13} /> Forecast memakai rolling meter sample, PF {TARIFF.assumedPowerFactor.toFixed(2)}, dan ritme pemakaian jam saat ini.
       </small>
     </article>
   );
